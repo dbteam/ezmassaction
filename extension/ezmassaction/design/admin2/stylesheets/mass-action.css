@@ -1,0 +1,46 @@
+/*
+
+*/
+.mass-action .turn-off{
+	display: none;
+}
+.mass-action form legend{
+	font-size: 15px;
+}
+.mass-action .messages{
+	border-color: #ffff00;
+	border-style: solid;
+	border-width: 5px;
+	border-radius: 4px;
+	float: left;
+	clear: both;
+	font-size: 15px;
+}
+.mass-action ul.parameters{
+	margin-left: 0;
+}
+.mass-action ul.nodes{
+	padding-bottom: 15px;
+}
+.mass-action ul{
+	display: block;
+	list-style: none outside none;
+}
+.mass-action ul.parameters li.parameter,
+.mass-action ul.parameters li.attribute{
+	float:left;
+	clear: left;
+}
+.mass-action ul.parameters li.attribute{
+	margin: 0.3em 0 0.5em 1.3em;
+}
+.mass-action ul.nodes li.nodes{
+	float: left;
+}
+
+.mass-action .buttons{
+	float: left;
+	clear: both;
+	margin-left: 1.3em;
+	text-align: left;
+}

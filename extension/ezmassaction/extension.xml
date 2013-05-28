@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<software>
+    <metadata>
+        <name>eZMassAction</name>
+        <version>0.0.000077</version>
+        <copyright>Copyright (C) 2013</copyright>
+        <license>GNU General Public License v2.0</license>
+        <info_url>http://projects.ez.no/ezmassaction</info_url>
+    </metadata>
+
+</software>
