@@ -8,18 +8,25 @@ $template_name = 'attribute_content';
 $persistent_variable = array ();
 $userParameters = array ();
 
-if ( isset( $Params['UserParameters'] ) )
+if (isset ($Params['UserParameters']) )
 {
 	$userParameters = $Params['UserParameters'];
 }
 
+$stepArray = array();
 
-$attribute_content = new Attribute_content($Params);
+$stepArray[] = array(
+	'file' => 'attribute_content.php',
+	'class' => 'Attribute_content'
+);
+
+$attribute_content = new Attribute_content($Params,);
 $persistent_variable = $attribute_content->get_parameters();
 $persistent_variable['errors'] = $attribute_content->get_errors();
 
 $tpl->setVariable( 'persistent_variable', $persistent_variable );
-
+$tpl->setVariable ('params', $Params);
+var_dump ($Params);
 
 
 $Result = array();
