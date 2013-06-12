@@ -35,7 +35,7 @@ class Attribute_content extends MAWizardBase{
 
 		if (!count ($founded_keys) ){
 			$this->ErrorList[] = 'Do not founded attribute.';
-			eZDebug::writeWarning ('Module: '. $this->Module->currentModule(). '/'. $this->Module->currentView().
+			eZDebug::writeWarning ('Module: '. $this->Module->currentModule (). '/'. $this->Module->currentView ().
 				' '. __METHOD__. ' '.__LINE__. ': '. $this->ErrorList[0]);
 
 			return false;
@@ -60,26 +60,14 @@ class Attribute_content extends MAWizardBase{
 			return false;
 		}
 
-		if (!$this->Module->hasActionParameter ('attribute_id') ){
-			$this->ErrorList[] = 'Required data is either missing or is invalid';
-			$this->prepare_to_repeat_step ();
-
-			return false;
-		}
-
-		if ($this->Module->actionParameter ('attribute_id') < 1){
-			$this->ErrorList[] = 'Required data is either missing or is invalid';
-			$this->prepare_to_repeat_step ();
-
-			return false;
-		}
-		$this->parameters['attribute_id'] = (int) $this->Module->actionParameter ('attribute_id');
-
-		$ma_xml = new MA_XML_File ($this->parameters);
-		$ma_xml->store_file ($this->Module->currentModule (), $this->storage_path);
-
 		$this->set_var_parameters_attr_identifier();
 		$this->set_var_parameters_class_identifier();
+
+		$ma_xml = new MA_XML_File ($this->parameters);
+		$ma_xml->store_file ($this->storage_path, $this->Module->currentModule ());
+
+
+		$this->setMetaData ('current_step', $this->metaData ('current_step') - 1);
 
 		return true;
 	}

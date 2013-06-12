@@ -10,7 +10,7 @@ class MA_XML_File {
 
 
 	public function __construct ($_data_arr, $_path = '', $file_name = ''){
-		if (is_array ($data_arr)){
+		if (is_array ($_data_arr)){
 			$this->data_arr = $_data_arr;
 			$this->sxml = new SimpleXMLElement('<root/>');
 			$this->create_sxml ($this->data_arr, $this->sxml);
@@ -70,12 +70,12 @@ class MA_XML_File {
 		return $data;
 		*/
 	}
-	public function store_file ($file_name = 'default_name', $_path = ''){
+	public function store_file ($_path = '', $_file_name = 'default_name'){
 		if (!$_path){
 			return false;
 		}
 
-		$file_full_name = $file_name. '.xml';
+		$_file_full_name = $_file_name. '.xml';
 
 		if (!is_dir (rtrim ($_path, '/') ) ){
 			if (!eZDir::mkdir (rtrim ($_path, '/'), 0776, true) ){
@@ -84,25 +84,26 @@ class MA_XML_File {
 				return false;
 			}
 		}
+		$_path = rtrim ($_path, '/'). '/';
 
-		$file_hendler = fopen ($_path. $file_full_name, 'w');
+		$file_hendler = fopen ($_path. $_file_full_name, 'w');
 		fwrite ($file_hendler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
 		fclose ($file_hendler);
 
 		return true;
 	}
 
-	public function fetch_file ($_path, $file_name = ''){
+	public function fetch_file ($_path, $_file_name = ''){
 		//$file = fopen ($this->storage_path. $file_full_name, 'w+');
-		$file_full_name = $file_name. '.xml';
+		$_file_full_name = $_file_name. '.xml';
 
 		if (!file_exists ($_path. $file_full_name) ){
-			$this->errors[] = 'File doesn\'t exist in path: '. $_path. $file_full_name;
+			$this->errors[] = 'File doesn\'t exist in path: '. $_path. $_file_full_name;
 			eZDebug::writeWarning (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
 			return false;
 		}
-		$handle = fopen ($_path. $file_full_name, "r");
-		$this->file_content = fread ($handle, filesize ($_path. $file_full_name));
+		$handle = fopen ($_path. $_file_full_name, "r");
+		$this->file_content = fread ($handle, filesize ($_path. $_file_full_name));
 
 		fclose ($handle);
 

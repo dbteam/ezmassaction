@@ -9,12 +9,15 @@ class MAWizardBase extends eZWizardBase{
 	protected $user_parameters;
 	protected $params;
 	protected $view;
+	protected $view_uri;
 
 
 	function __construct ($_tpl, $_params, $_storageName = false){
 		//$this->xml = new Massaction_XML_file ();
 		$_module = $_params['Module'];
-		$this->WizardURL = $_module->currentModule (). '/'. $_module->currentView ();
+
+		$this->view_uri = $_module->currentModule (). '/'. $_module->currentView ();
+		$this->WizardURL = $this->view_uri;
 		$this->eZWizardBase( $_tpl, $_module, $_storageName );
 
 		$this->params = $_params;
@@ -30,12 +33,13 @@ class MAWizardBase extends eZWizardBase{
 		else{
 			$this->parameters = array ();
 			$this->parameters['first_step_id'] = MAWizardBase::FIRST_STEP;
+			$this->parameters['step'] = MAWizardBase::FIRST_STEP;
 			//$this->parameters['step'] = MAWizardBase::FIRST_STEP;
 		}
 
 		//$this->parameters['first_step_id'] = MAWizardBase::FIRST_STEP;
-		$current_step = $this->metaData ('current_step');
-		if (!$current_step or $current_step < MAWizardBase::FIRST_STEP){
+		$_current_step = $this->metaData ('current_step');
+		if (!$_current_step or $_current_step < MAWizardBase::FIRST_STEP){
 			$this->setMetaData ('current_step', MAWizardBase::FIRST_STEP);
 		}
 	}
@@ -98,10 +102,11 @@ class MAWizardBase extends eZWizardBase{
 	}
 
 	protected function prepare_to_repeat_step (){
-		$this->WizardURL = $this->Module->currentModule (). '/'. $this->Module->currentView ();
+		$this->WizardURL = $this->view_uri;
 		//$this->setMetaData ('current_step', Attributes_list::FIRST_STEP);
 
-		$this->parameters['form']['action']['url_alias'] = $this->Module->currentModule (). '/'. $this->Module->currentView ();
+		//$this->parameters['form']['action']['url_alias'] = $this->Module->currentModule (). '/'. $this->Module->currentView ();
+		$this->parameters['form']['action']['url_alias'] = $this->view_uri;
 		$this->setVariable ('parameters', $this->parameters);
 	}
 
