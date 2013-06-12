@@ -64,7 +64,7 @@ class Attribute_content extends MAWizardBase{
 		$this->set_var_parameters_class_identifier();
 
 		$ma_xml = new MA_XML_File ($this->parameters);
-		$ma_xml->store_file ($this->storage_path, $this->Module->currentModule ());
+		$ma_xml->store_file_2 ($this->storage_path, $this->Module->currentModule ());
 
 
 		$this->setMetaData ('current_step', $this->metaData ('current_step') - 1);
