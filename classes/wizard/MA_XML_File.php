@@ -9,7 +9,7 @@ class MA_XML_File {
 	protected $file_content;
 
 
-	public function __construct ($_data_arr, $_path = '', $file_full_name = ''){
+	public function __construct ($_data_arr, $_path = '', $file_name = ''){
 		if (is_array ($data_arr)){
 			$this->data_arr = $_data_arr;
 			$this->sxml = new SimpleXMLElement('<root/>');
@@ -70,10 +70,12 @@ class MA_XML_File {
 		return $data;
 		*/
 	}
-	public function store_file ($file_full_name = 'default_name.txt', $_path = ''){
+	public function store_file ($file_name = 'default_name', $_path = ''){
 		if (!$_path){
 			return false;
 		}
+
+		$file_full_name = $file_name. '.xml';
 
 		if (!is_dir (rtrim ($_path, '/') ) ){
 			if (!eZDir::mkdir (rtrim ($_path, '/'), 0776, true) ){
@@ -90,8 +92,10 @@ class MA_XML_File {
 		return true;
 	}
 
-	public function fetch_file ($_path, $file_full_name = ''){
+	public function fetch_file ($_path, $file_name = ''){
 		//$file = fopen ($this->storage_path. $file_full_name, 'w+');
+		$file_full_name = $file_name. '.xml';
+
 		if (!file_exists ($_path. $file_full_name) ){
 			$this->errors[] = 'File doesn\'t exist in path: '. $_path. $file_full_name;
 			eZDebug::writeWarning (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
