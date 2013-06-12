@@ -2,7 +2,7 @@
 
 class MA_XML_File {
 	protected $sxml;
-	//protected $sxml_flag;
+	protected $sxml_flag;
 	protected $xml_str_hun_rle;
 	protected $storage_path;
 	protected $data_arr;
@@ -12,7 +12,7 @@ class MA_XML_File {
 
 
 	public function __construct ($_data_arr, $_path = '', $_file_name = 'massaction'){
-		//$this->sxml_flag = false;
+		$this->sxml_flag = false;
 
 		if ($this->set_data_arr ($_data_arr)){
 			$this->create_sxml ($this->data_arr, $this->sxml);
@@ -90,12 +90,14 @@ class MA_XML_File {
 		$this->xml_str_hun_rle = $dom->saveXML();
 	}
 	protected function create_sxml ($data, &$data_xml){
-		if (!$this->sxml){
+		if (!$this->sxml_flag){
 			$this->sxml = new SimpleXMLElement('<root/>');
+			$this->sxml_flag = true;
+
 			$this->create_sxml ($data, $this->sxml);
 		}
 		else{
-			foreach($data as $key => $value) {
+			foreach ($data as $key => $value){
 				if (is_array ($value) ) {
 					if (!is_numeric ($key) ){
 						$subnode = $data_xml->addChild ("$key");

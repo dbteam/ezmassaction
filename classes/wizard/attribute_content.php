@@ -46,6 +46,10 @@ class Attribute_content extends MAWizardBase{
 
 		return true;
 	}
+
+	protected function set_var_parameters_attribute_content (){
+		$this->parameters['attribute_content'] = $_POST[$this->content_object_attribute_post_key];
+	}
 	function postCheck()
 	{
 		if (!$this->Module->isCurrentAction ('change_attribute_content')){
@@ -64,7 +68,13 @@ class Attribute_content extends MAWizardBase{
 		$this->set_var_parameters_class_identifier();
 
 		$ma_xml = new MA_XML_File ($this->parameters);
-		$ma_xml->store_file_2 ($this->storage_path, $this->Module->currentModule ());
+		if (!$ma_xml->store_file_2 ($this->storage_path, $this->Module->currentModule ())){
+			$this->ErrorList[] = $ma_xml->get_error();
+
+			return false;
+		}
+
+		$this->set_var_parameters_attribute_content ();
 
 
 		$this->setMetaData ('current_step', $this->metaData ('current_step') - 1);
