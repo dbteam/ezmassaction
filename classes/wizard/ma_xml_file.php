@@ -9,24 +9,31 @@ class MA_XML_File {
 	protected $errors = array();
 	protected $file_content;
 	protected $file_name;
+	protected $file_full_name;
+	protected $file_ext;
 
 
 	public function __construct ($_data_arr, $_path = '', $_file_name = 'massaction'){
 		$this->sxml_flag = false;
+		$this->file_ext = '.xml';
 
 		if ($this->set_data_arr ($_data_arr)){
 			$this->create_sxml ($this->data_arr, $this->sxml);
 
-			$this->file_name = $_file_name;
+			$this->set_file_full_name ($_file_name);
 
 			$this->make_xml_human_redable ();
+
+			if (!$this->set_storage_path ($_path)){
+				return false;
+			}
 		}
 		elseif ($_path){
 			if (!$this->set_storage_path ($_path)){
 				return false;
 			}
 
-			$this->file_name = $_file_name;
+			$this->set_file_full_name ($_file_name);
 
 			$this->fetch_file ();
 		}
@@ -57,6 +64,11 @@ class MA_XML_File {
 		return $this->data_arr;
 	}
 
+	public function set_file_full_name ($_file_name = 'massaction'){
+		$this->file_name = $_file_name;
+		$this->file_full_name = $this->file_name. $this->file_ext;
+	}
+
 	/**
 	 * @param $_path
 	 * @return bool
@@ -65,11 +77,14 @@ class MA_XML_File {
 		if (!trim ($_path)){
 			return false;
 		}
-		$this->storage_path = rtrim ($_path, ' /'). '/';
+		//for server on Windows:
+		$this->storage_path = str_replace ('\\', '/', $_path);
+
+		$this->storage_path = rtrim ($this->storage_path, ' /'). '/';
 
 		if (!is_dir (rtrim ($this->storage_path, '/') ) ){
 			if (!eZDir::mkdir ($this->storage_path, 0776, true) ){
-				$this->errors[] = 'Cannot create file or directory no permission, path: '. $this->storage_path;
+				$this->errors[] = 'Cannot create directory no permission, path: '. $this->storage_path;
 				eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
 
 				$this->storage_path = '';
@@ -146,20 +161,15 @@ class MA_XML_File {
 			return false;
 		}
 
-		$_file_full_name = $_file_name. '.xml';
-		$_path = rtrim ($_path, '/'). '/';
-
-		if (!is_dir (rtrim ($_path, '/') ) ){
-			if (!eZDir::mkdir ($_path, 0776, true) ){
-				$this->errors[] = 'Cannot create file or directory, path: '. $_path;
-				eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
-				return false;
-			}
+		if (!$this->set_storage_path ($_path)){
+			return false;
 		}
 
-		$file_hendler = fopen ($_path. $_file_full_name, 'w');
-		fwrite ($file_hendler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
-		fclose ($file_hendler);
+		$this->set_file_full_name ($_file_name);
+
+		if (!$this->store_file ()){
+			return false;
+		}
 
 		return true;
 	}
@@ -167,14 +177,48 @@ class MA_XML_File {
 	public function store_file (){
 		if (!$this->xml_str_hun_rle){
 			if (!$this->data_arr){
+				$this->errors[] = 'No data to store.';
+
 				return false;
 			}
 			$this->create_sxml($this->data_arr, $this->sxml);
 			$this->make_xml_human_redable();
 
-			return true;
+			//return true;
 		}
-		$file_hendler = fopen ($this->storage_path. $this->file_name. '.xml', 'w');
+
+		$_file_full_path = $this->storage_path. $this->file_full_name;
+
+		$counter = 2;
+		while (file_exists ($_file_full_path)) {
+			$this->set_file_full_name ($this->file_name. '_'. $counter);
+
+			$_file_full_path = $this->storage_path. $this->file_full_name;
+
+			$counter++;
+		}
+
+		$file_hendler = fopen ($_file_full_path, 'xt');//xt wt
+
+		if (!$file_hendler){
+			$this->errors[] = 'File exist this method cannot rewrite the file. Path: '. $_file_full_path;
+			eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
+
+			return false;
+		}
+		else{
+			/*
+			if (!is_writable ($_file_full_path)){
+				$this->errors[] = 'Cannot rewrite the file, no permissions. Path: '. $_file_full_path;
+				eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
+
+				fclose ($file_hendler);
+
+				return false;
+			}
+			*/
+		}
+
 		fwrite ($file_hendler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
 		fclose ($file_hendler);
 
@@ -183,21 +227,22 @@ class MA_XML_File {
 
 	public function fetch_file (){
 		//$file = fopen ($this->storage_path. $file_full_name, 'w+');
-		$_file_full_name = $this->file_name. '.xml';
+		$_file_full_path = $this->storage_path. $this->file_full_name;
 
-		if (!file_exists ($this->storage_path. $_file_full_name) ){
-			$this->errors[] = 'File doesn\'t exist in path: '. $this->storage_path. $_file_full_name;
+		if (!file_exists ($_file_full_path) ){
+			$this->errors[] = 'File doesn\'t exist in path: '. $_file_full_path;
 			eZDebug::writeWarning (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
 			return false;
 		}
-		$handle = fopen ($this->storage_path. $_file_full_name, "r");
+
+		$handle = fopen ($_file_full_path, "r");
 		if (!$handle){
-			$this->errors[] = 'No permission to read file: '. $this->storage_path. $_file_full_name;
+			$this->errors[] = 'No permission to read file: '. $_file_full_path;
 			eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
 
 			return false;
 		}
-		$this->file_content = fread ($handle, filesize ($this->storage_path. $_file_full_name));
+		$this->file_content = fread ($handle, filesize ($_file_full_path));
 
 		fclose ($handle);
 

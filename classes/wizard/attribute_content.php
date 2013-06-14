@@ -67,8 +67,8 @@ class Attribute_content extends MAWizardBase{
 		$this->set_var_parameters_attr_identifier();
 		$this->set_var_parameters_class_identifier();
 
-		$ma_xml = new MA_XML_File ($this->parameters);
-		if (!$ma_xml->store_file_2 ($this->storage_path, $this->Module->currentModule ())){
+		$ma_xml = new MA_XML_File ($this->parameters, $this->storage_path, $this->Module->currentModule ());
+		if (!$ma_xml->store_file ()){
 			$this->ErrorList[] = $ma_xml->get_error();
 
 			return false;

@@ -22,7 +22,7 @@ $script = eZScript::instance(
 $script->startup();
 
 $options = $script->getOptions (
-	'[db-user:][db-password:][db-database:][db-driver:][sql][filename-part:][admin-user:][scriptid:]',
+	'[db-user:][db-password:][db-database:][db-driver:][sql][parent-catalog:][filename-part:][admin-user:][scriptid:]',
 	'[name]',
   array (
 		'db-host' => 'Database host',
@@ -88,43 +88,42 @@ else{
 $filename_part = str_replace ('\.xml', '', $filename_part);
 
 $parent_catalog = $options['parent-catalog'];
+
 if (!$parent_catalog){
-	$parent_catalog = $filename_part;
+	$parent_catalog  = preg_replace ( '/_\d\..{2,4}/', '', $filename_part);
 }
-$_file_path = str_replace ('\\', '/', eZSys::rootDir () ).'/'. eZSys::storageDirectory (). '/'. $parent_catalog. '/' ;
+$_file_path = eZSys::rootDir (). '/'. eZSys::storageDirectory (). '/'. $parent_catalog. '/' ;
 
-$ma_xml = new MA_XML_File('', $_file_path, $filename_part );
+$ma_xml = new MA_XML_File ('', $_file_path, $filename_part );
 if (!$ma_xml){
-	$cli->error( 'File and/or path dosen\'t exists. Path: '. $_file_path );
+	$cli->error( $ma_xml->get_error() );
 	$script->shutdown( 1 );
 
 	return;
 }
-if (!$ma_xml->fetch_file()){
+if (!$ma_xml->fetch_file ()){
 
-	$cli->error( $ma_xml->get_error(). ' Look to log file.' );
-	$script->shutdown( 1 );
+	$cli->error ($ma_xml->get_error (). ' Look to log file.');
+	$script->shutdown (1);
 
 	return;
 }
+$xml_arr = $ma_xml->get_data_arr ();
 
-$xml_arr = $ma_xml->get_data_arr();
 
-xxxx there I brake the work
 
-$fp = fopen( $file_full_name, 'r' );
-$contents = fread( $fp, filesize( $file_full_name ) );
-fclose( $fp );
 
-$object = unserialize( $contents );
+//$object = unserialize( $contents );
 
 
 $cli->endlineString();
 
-$handler_name = $object->variable( 'source_datatype_string') . '2' . $object->variable( 'target_datatype_string' );
+//$handler_name = $object->variable( 'source_datatype_string') . '2' . $object->variable( 'target_datatype_string' );
 
-$cli->output( 'Procesing handler: ' . $handler_name );
+//$cli->output( 'Procesing handler: ' . $handler_name );
 
+
+//xxxx there I brake the work
 
 // initialize convert handler
 $converter = new $handler_name();
