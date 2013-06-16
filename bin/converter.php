@@ -22,8 +22,8 @@ $script = eZScript::instance(
 $script->startup();
 
 $options = $script->getOptions (
-	'[db-user:][db-password:][db-database:][db-driver:][sql][parent-catalog:][filename-part:][admin-user:][scriptid:]',
-	'[name]',
+	'[db-user:][db-password:][db-database:][db-driver:][sql][parent-catalog:][filename-part:][admin-user:]
+	[scriptid:][name]',
   array (
 		'db-host' => 'Database host',
 		'db-user' => 'Database user',
@@ -89,6 +89,7 @@ $filename_part = str_replace ('\.xml', '', $filename_part);
 
 $parent_catalog = $options['parent-catalog'];
 
+// modulname/modulename_2
 if (!$parent_catalog){
 	$parent_catalog  = preg_replace ( '/_\d\..{2,4}/', '', $filename_part);
 }
