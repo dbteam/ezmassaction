@@ -14,9 +14,9 @@ $script = eZScript::instance(
 		'description' => (
 			"CLI script. \n\n". "Will change attributes content set with wizard. \n". "\n". 'converter.php -s site_admin'
 		),
-    'use-session' => false,
-    'use-modules' => true,
-    'use-extensions' => true
+		'use-session' => false,
+		'use-modules' => true,
+		'use-extensions' => true
 	)
 );
 $script->startup();
@@ -24,14 +24,14 @@ $script->startup();
 $options = $script->getOptions (
 	'[db-user:][db-password:][db-database:][db-driver:][sql][parent-catalog:][filename-part:][admin-user:][scriptid:]',
 	'[name]',
-  array (
+	array (
 		'db-host' => 'Database host',
 		'db-user' => 'Database user',
 		'db-password' => 'Database password',
 		'db-database' => 'Database name',
 		'db-driver' => 'Database driver',
 		'sql' => 'Display sql queries',
-	  'parent-catalog' => 'Catalog contains the file',
+		'parent-catalog' => 'Catalog contains the file',
 		'filename-part' => 'Part of filename to read with serialized object data (without extension)',
 		'admin-user' => 'Alternative login for the user to perform operation as',
 		'scriptid' => 'Used by the Script Monitor extension, do not use manually'
@@ -42,20 +42,20 @@ $script->initialize();
 // Log in admin user
 if ( isset( $options['admin-user'] ) )
 {
-    $adminUser = $options['admin-user'];
+	$adminUser = $options['admin-user'];
 }
 else
 {
-    $adminUser = 'admin';
+	$adminUser = 'admin';
 }
 $user = eZUser::fetchByName( $adminUser );
 if ( $user )
-    eZUser::setCurrentlyLoggedInUser( $user, $user->attribute( 'id' ) );
+	eZUser::setCurrentlyLoggedInUser( $user, $user->attribute( 'id' ) );
 else
 {
-    $cli->error( 'Could not fetch admin user object' );
-    $script->shutdown( 1 );
-    return;
+	$cli->error( 'Could not fetch admin user object' );
+	$script->shutdown( 1 );
+	return;
 }
 
 $db = eZDB::instance();
@@ -138,10 +138,11 @@ $converter->preAction( $object );
 
 // do class attribute conversion
 $contentClassAttribute = eZContentClassAttribute::fetch( $object->variable( 'attribute_id' ) );
-$converter->convertClassAttribute( $contentClassAttribute, $object );		
 
-if ( $scheduledScript )
-{		
+$converter->convertClassAttribute( $contentClassAttribute, $object );
+
+if ( $scheduledScript ){
+
 	$scheduledScript->updateProgress( 1 ); // after class conversion set process as 1%
 }
 
@@ -150,7 +151,7 @@ $converter->postConvertClassAttributeAction( $object );
 
 // do preConvertObjectAttributesAction()
 $converter->preConvertObjectAttributesAction( $object );
-			
+
 // fetch attributes just to count			
 $total_attribute_count = DBAttributeConverter::getContentObjectAttributeCount( $object->variable( 'attribute_id' ) );
 
@@ -163,34 +164,34 @@ $counter = 0;
 while ( true )
 {
 	$objectsArray = eZPersistentObject::fetchObjectList( eZContentObjectAttribute::definition(),
-                                                null,
-                                                $conditions,
-                                                null,
-                                                array( 'limit' => $limit,
-													   'offset' => $offset ),
-                                                $asObject = true);
-	
+		null,
+		$conditions,
+		null,
+		array( 'limit' => $limit,
+			'offset' => $offset ),
+		$asObject = true);
+
 	if ( !$objectsArray || count( $objectsArray ) == 0 )
 	{
 		break;
 	}
 
 	$offset+=$limit;
-	
+
 	foreach ( $objectsArray as $attributeObject )
 	{
 		$converter->convertObjectAttribute( $attributeObject, $object );
 		$cli->output( '#', false );
 		$counter++;
 	}
-	
-    // Progress bar and Script Monitor progress
-    $progressPercentage = ( $counter / $total_attribute_count ) * 100;
-    $cli->output( sprintf( ' %01.1f %%', $progressPercentage ) );
-    if ( $scheduledScript )
-    {
-        $scheduledScript->updateProgress( $progressPercentage );
-    }
+
+	// Progress bar and Script Monitor progress
+	$progressPercentage = ( $counter / $total_attribute_count ) * 100;
+	$cli->output( sprintf( ' %01.1f %%', $progressPercentage ) );
+	if ( $scheduledScript )
+	{
+		$scheduledScript->updateProgress( $progressPercentage );
+	}
 
 }
 // do postAction()
