@@ -89,16 +89,17 @@ $filename_part = str_replace ('\.xml', '', $filename_part);
 
 $parent_catalog = $options['parent-catalog'];
 
+
 // modulname/modulename_2
 if (!$parent_catalog){
-	$parent_catalog  = preg_replace ( '/_\d\..{2,4}/', '', $filename_part);
+	$parent_catalog  = preg_replace ('/_\d/', '', $filename_part);
 }
 $_file_path = eZSys::rootDir (). '/'. eZSys::storageDirectory (). '/'. $parent_catalog. '/' ;
 
 $ma_xml = new MA_XML_File ('', $_file_path, $filename_part );
 if (!$ma_xml){
 	$cli->error( $ma_xml->get_error() );
-	$script->shutdown( 1 );
+	$script->shutdown (1);
 
 	return;
 }
@@ -131,7 +132,7 @@ $converter = new $handler_name();
 
 // transaction begin - note that with transaction it's not possible to see progress in script monitoring tool
 $db = eZDB::instance();
-//$db->begin();			
+//$db->begin();
 
 // do preAction()
 $converter->preAction( $object );
