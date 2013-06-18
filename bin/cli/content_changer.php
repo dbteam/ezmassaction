@@ -9,10 +9,12 @@ require 'autoload.php';
 $cli = eZCLI::instance();
 $endl = $cli->endlineString();
 
+set_time_limit(60);
+
 $script = eZScript::instance(
 	array(
 		'description' => (
-			"CLI script. \n\n". "Will change attributes content set with wizard. \n". "\n". 'converter.php -s site_admin'
+			"CLI script. \n\n". "Will change attributes content set with wizard. \n". "\n". 'content_changer.php -s site_admin'
 		),
 		'use-session' => false,
 		'use-modules' => true,
@@ -22,15 +24,16 @@ $script = eZScript::instance(
 $script->startup();
 
 $options = $script->getOptions (
-	'[db-user:][db-password:][db-database:][db-driver:][sql][parent-catalog:][filename-part:][admin-user:]
-	[scriptid:][name]',
+//	'[db-user:][db-password:][db-database:][db-driver:][sql]
+	'[parent-catalog:][filename-part:][admin-user:][scriptid:]',
+	'',
   array (
-		'db-host' => 'Database host',
-		'db-user' => 'Database user',
-		'db-password' => 'Database password',
-		'db-database' => 'Database name',
-		'db-driver' => 'Database driver',
-		'sql' => 'Display sql queries',
+//		'db-host' => 'Database host',
+//		'db-user' => 'Database user',
+//		'db-password' => 'Database password',
+//		'db-database' => 'Database name',
+//		'db-driver' => 'Database driver',
+//		'sql' => 'Display sql queries',
 		'parent-catalog' => 'Catalog contains the file',
 		'filename-part' => 'Part of filename to read with serialized object data (without extension)',
 		'admin-user' => 'Alternative login for the user to perform operation as',
@@ -54,7 +57,7 @@ if ( $user )
 else
 {
 	$cli->error( 'Could not fetch admin user object' );
-	$script->shutdown( 1 );
+	$script->shutdown (1);
 	return;
 }
 
@@ -126,6 +129,8 @@ if (!isset ($xml_arr['cron'])){
 	$xml_arr['cron']['subtree'] = array ();
 }
 
+$db = eZDB::instance();
+
 if ( $scheduledScript ){
 	$scheduledScript->updateProgress( 1 ); // after class conversion set process as 1%
 }
@@ -136,7 +141,7 @@ foreach ($xml_arr['parents_nodes_ids'] as $_key => $_id){
 	//$ma_tree_nodes = new MA_Content_Object_Tree_Nodes_List($_id, $xml_arr['section_identifier'], $xml_arr['class_identifier'], $xml_arr['locales_codes']);
 
 	$ma_tree_nodes = new MA_Content_Object_Tree_Nodes_List (
-		$_id, $xml_arr['section_identifier'], $xml_arr['class_identifier'], $xml_arr['locales_codes'], 0
+		$_id, $xml_arr['section_identifier'], $xml_arr['class_identifier'], $xml_arr['locales_codes']
 	);
 
 	$ma_tree_nodes->set_to_change_nodes_tree_attribute_content (
@@ -152,7 +157,7 @@ foreach ($xml_arr['parents_nodes_ids'] as $_key => $_id){
 
 	// now a small scam
 	$progressPercentage = (($xml_arr['cron']['subtree'][$_subtree_counter]['counter'] / $xml_arr['cron']['subtree'][$_subtree_counter]['count'])
-		/ (count ($xml_arr['parents_nodes_ids']) - $_subtree_counter) * 100;
+		/ (count ($xml_arr['parents_nodes_ids']) - $_subtree_counter) * 100);
 
 	$cli->output( sprintf( ' %01.1f %%', $progressPercentage ) );
 
