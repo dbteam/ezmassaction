@@ -58,7 +58,6 @@ else
 	return;
 }
 
-$db = eZDB::instance();
 
 // Take care of script monitoring
 $scheduledScript = false;
@@ -68,7 +67,7 @@ if (
 	and class_exists ('eZScheduledScript')
 ){
 	$scriptID = $options['scriptid'];
-	$scheduledScript = eZScheduledScript::fetch( $scriptID );
+	$scheduledScript = eZScheduledScript::fetch ($scriptID);
 }
 
 
@@ -76,21 +75,25 @@ if (
 /**
  * @param $filename_part = 'module_name/file_name'
  */
-if (isset ($options['filename-part'])){
+if (!empty ($options['filename-part'])){
 	$filename_part = $options['filename-part'];
 }
 else{
-	$cli->error( 'Missing datafile name !' );
+	$cli->error ('Missing filename !');
 	$script->shutdown();
 }
 
-//$filename = 'var/cache/' . $filename_part . '.xml';
+//$filename = 'file_name_without_file_extension';
+// 'my_file'
 $filename_part = str_replace ('\.xml', '', $filename_part);
 
 $parent_catalog = $options['parent-catalog'];
 
 
-// modulname/modulename_2
+//'var/cache/<cache dir setted in site.ini>/module_name/' . $filename_part . '.xml';
+// egsample: modulname/modulename_2. '.xml'
+// egsample: modulname/modulename_2
+// egsample: $parent_catalog = modulename
 if (!$parent_catalog){
 	$parent_catalog  = preg_replace ('/_\d/', '', $filename_part);
 }
@@ -110,101 +113,65 @@ if (!$ma_xml->fetch_file ()){
 
 	return;
 }
+
+$cli->endlineString ();
+$cli->output ('Procesing... ');
+
+$xml_arr = array ();
 $xml_arr = $ma_xml->get_data_arr ();
-
-
-
-
-//$object = unserialize( $contents );
-
-
-$cli->endlineString();
-
-//$handler_name = $object->variable( 'source_datatype_string') . '2' . $object->variable( 'target_datatype_string' );
-
-//$cli->output( 'Procesing handler: ' . $handler_name );
-
-
-//xxxx there I brake the work
-
-// initialize convert handler
-$converter = new $handler_name();
-
-// transaction begin - note that with transaction it's not possible to see progress in script monitoring tool
-$db = eZDB::instance();
-//$db->begin();
-
-// do preAction()
-$converter->preAction( $object );
-
-
-// do class attribute conversion
-$contentClassAttribute = eZContentClassAttribute::fetch( $object->variable( 'attribute_id' ) );
-
-$converter->convertClassAttribute( $contentClassAttribute, $object );
+if (!isset ($xml_arr['cron'])){
+	$xml_arr['cron']['step'] = 0;
+	$xml_arr['cron']['offset'] = 0;
+	$xml_arr['cron']['limit'] = 10;
+	$xml_arr['cron']['subtree'] = array ();
+}
 
 if ( $scheduledScript ){
-
 	$scheduledScript->updateProgress( 1 ); // after class conversion set process as 1%
 }
 
-// do postConvertClassAttributeAction()
-$converter->postConvertClassAttributeAction( $object );
+$_subtree_counter = 0;
 
-// do preConvertObjectAttributesAction()
-$converter->preConvertObjectAttributesAction( $object );
-			
-// fetch attributes just to count			
-$total_attribute_count = DBAttributeConverter::getContentObjectAttributeCount( $object->variable( 'attribute_id' ) );
+foreach ($xml_arr['parents_nodes_ids'] as $_key => $_id){
+	//$ma_tree_nodes = new MA_Content_Object_Tree_Nodes_List($_id, $xml_arr['section_identifier'], $xml_arr['class_identifier'], $xml_arr['locales_codes']);
 
-// do object attributes conversion - all versions
-$conditions = array( "contentclassattribute_id" => $object->variable( 'attribute_id' ) );
-$offset = 0;
-$limit = 100;
-$counter = 0;
+	$ma_tree_nodes = new MA_Content_Object_Tree_Nodes_List (
+		$_id, $xml_arr['section_identifier'], $xml_arr['class_identifier'], $xml_arr['locales_codes'], 0
+	);
 
-while ( true )
-{
-	$objectsArray = eZPersistentObject::fetchObjectList( eZContentObjectAttribute::definition(),
-		null,
-		$conditions,
-		null,
-		array( 'limit' => $limit,
-			'offset' => $offset ),
-		$asObject = true);
+	$ma_tree_nodes->set_to_change_nodes_tree_attribute_content (
+		$xml_arr['attribute_identifier'], $xml_arr['attribute_content'], true, $xml_arr['cron']['offset'], $xml_arr['cron']['limit']
+	);
 
-	if ( !$objectsArray || count( $objectsArray ) == 0 )
-	{
-		break;
+	do{
+		$ma_tree_nodes->change_nodes_tree_attribute_content ();
+		$xml_arr['cron']['subtree'][$_subtree_counter] = $ma_tree_nodes->get_change_result ();
 	}
 
-	$offset+=$limit;
+	while ($xml_arr['cron']['subtree'][$_subtree_counter]['end_flag']);
 
-	foreach ( $objectsArray as $attributeObject )
-	{
-		$converter->convertObjectAttribute( $attributeObject, $object );
-		$cli->output( '#', false );
-		$counter++;
-	}
+	// now a small scam
+	$progressPercentage = (($xml_arr['cron']['subtree'][$_subtree_counter]['counter'] / $xml_arr['cron']['subtree'][$_subtree_counter]['count'])
+		/ (count ($xml_arr['parents_nodes_ids']) - $_subtree_counter) * 100;
 
-	// Progress bar and Script Monitor progress
-	$progressPercentage = ( $counter / $total_attribute_count ) * 100;
 	$cli->output( sprintf( ' %01.1f %%', $progressPercentage ) );
-	if ( $scheduledScript )
-	{
-		$scheduledScript->updateProgress( $progressPercentage );
+
+	if ($scheduledScript){
+		$scheduledScript->updateProgress ($progressPercentage);
 	}
 
+	$_subtree_counter++;
 }
-// do postAction()
-$converter->postAction( $object );
 
-// transaction commit
-//$db->commit();
+$ma_xml->set_data_arr ($xml_arr);
+$ma_xml->rewrite_file ();
 
-// remove used file
-unlink( $filename );
+unset ($ma_xml);
+unset ($ma_tree_nodes);
+unset ($xml_arr);
 
+$cli->endlineString ();
+$cli->output ('Well done!');
 
 $script->shutdown();
 ?>

@@ -224,6 +224,35 @@ class MA_XML_File {
 
 		return true;
 	}
+	public function rewrite_file (){
+		if (!$this->xml_str_hun_rle){
+			if (!$this->data_arr){
+				$this->errors[] = 'No data to store.';
+
+				return false;
+			}
+			$this->create_sxml($this->data_arr, $this->sxml);
+			$this->make_xml_human_redable ();
+
+			//return true;
+		}
+
+		$_file_full_path = $this->storage_path. $this->file_full_name;
+
+		$file_hendler = fopen ($_file_full_path, 'wt');//xt wt
+
+		if (!$file_hendler){
+			$this->errors[] = 'File exist this method cannot rewrite the file. Path: '. $_file_full_path;
+			eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
+
+			return false;
+		}
+
+		fwrite ($file_hendler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
+		fclose ($file_hendler);
+
+		return true;
+	}
 
 	public function fetch_file (){
 		//$file = fopen ($this->storage_path. $file_full_name, 'w+');
