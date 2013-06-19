@@ -46,19 +46,20 @@ class Attribute_content extends MAWizardBase{
 
 		return true;
 	}
-
-	protected function set_var_parameters_attribute_content (){
+	protected function set_var_parameters_attr_identifier (){
+		$this->parameters['attribute_identifier'] = eZContentClassAttribute::classAttributeIdentifierByID ($this->parameters['attribute_id']);
+	}
+	protected function set_var_parameters_class_identifier (){
+		$this->parameters['class_identifier'] = eZContentClass::classIdentifierByID ($this->parameters['class_id']);
+	}
+	protected function set_parameters_attribute_content (){
 		$this->parameters['attribute_content'] = $_POST[$this->content_object_attribute_post_key];
 	}
-	function postCheck()
-	{
+	protected function set_parameters_step_by_step (){
+		$this->parameters['step_by_step'] = $this->Module->actionParameter ('step_by_step');
+	}
+	function postCheck(){
 		if (!$this->Module->isCurrentAction ('change_attribute_content')){
-			$this->prepare_to_repeat_step();
-
-			return false;
-		}
-
-		if (!$this->search_attribute_in_post ()){
 			$this->prepare_to_repeat_step();
 
 			return false;
@@ -67,26 +68,32 @@ class Attribute_content extends MAWizardBase{
 		$this->set_var_parameters_attr_identifier();
 		$this->set_var_parameters_class_identifier();
 
+		if (!$this->search_attribute_in_post ()){
+			$this->prepare_to_repeat_step();
+
+			return false;
+		}
+		$this->set_parameters_attribute_content ();
+
+		if (!$this->Module->hasActionParameter ('step_by_step')){
+			$this->ErrorList[] = 'Missing form field.';
+
+			return false;
+		}
+		$this->set_parameters_step_by_step ();
+
+
 		$ma_xml = new MA_XML_File ($this->parameters, $this->storage_path, $this->Module->currentModule ());
 		if (!$ma_xml->store_file ()){
 			$this->ErrorList[] = $ma_xml->get_error();
 
 			return false;
 		}
+		$this->parameters['file_name'] = $ma_xml->get_file_name ();
 
-		$this->set_var_parameters_attribute_content ();
-
-
-		$this->setMetaData ('current_step', $this->metaData ('current_step') - 1);
+		//$this->setMetaData ('current_step', $this->metaData ('current_step') - 1);
 
 		return true;
-	}
-
-	protected function set_var_parameters_attr_identifier (){
-		$this->parameters['attribute_identifier'] = eZContentClassAttribute::classAttributeIdentifierByID ($this->parameters['attribute_id']);
-	}
-	protected function set_var_parameters_class_identifier (){
-		$this->parameters['class_identifier'] = eZContentClass::classIdentifierByID ($this->parameters['class_id']);
 	}
 
 }

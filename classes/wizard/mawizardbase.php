@@ -10,6 +10,7 @@ class MAWizardBase extends eZWizardBase{
 	protected $params;
 	protected $view;
 	protected $view_uri;
+	protected $tpl_name;
 
 
 	function __construct ($_tpl, $_params, $_storageName = false){
@@ -18,6 +19,7 @@ class MAWizardBase extends eZWizardBase{
 
 		$this->view_uri = $_module->currentModule (). '/'. $_module->currentView ();
 		$this->WizardURL = $this->view_uri;
+		$this->tpl_name = 'attribute_content';
 		$this->eZWizardBase( $_tpl, $_module, $_storageName );
 
 		$this->params = $_params;
@@ -109,6 +111,9 @@ class MAWizardBase extends eZWizardBase{
 		$this->parameters['form']['action']['url_alias'] = $this->view_uri;
 		$this->setVariable ('parameters', $this->parameters);
 	}
+	protected function prepare_current_step (){
+		$this->prepare_to_repeat_step ();
+	}
 
 	function nextStep (){
 		$this->WizardURL = $this->Module->currentModule (). '/'. $this->Module->Functions[$this->params['FunctionName']]
@@ -149,7 +154,7 @@ class MAWizardBase extends eZWizardBase{
 
 		$this->view = array();
 		//$this->view['content'] = isset( $result ) ? $result : null;
-		$this->view['content'] = $this->Tpl->fetch ('design:'. $this->Module->currentModule (). '/'. 'attribute_content.tpl');
+		$this->view['content'] = $this->Tpl->fetch ('design:'. $this->Module->currentModule (). '/'. $this->tpl_name. '.tpl');
 		$this->view['view_parameters'] = $this->user_parameters;
 
 		$this->view['persistent_variable'] = $this->Tpl->variable ('persistent_variable');

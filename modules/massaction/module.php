@@ -32,6 +32,7 @@ $ViewList['wizard'] = array (
 		'GetAttributesList' => 'get_attributes_list',
 		'GetAttribute' => 'get_attribute',
 		'ChangeAttributeContent' => 'change_attribute_content',
+		'ShowResult' => 'show_result',
 
 		'PreviousButton' => 'step_back',
 		'RestartButton' => 'restart_process'
@@ -47,8 +48,10 @@ $ViewList['wizard'] = array (
 			'attribute_id' => 'AttributeID'
 		),
 		'change_attribute_content' => array (
-			'attribute_content' => 'Content'
+			'attribute_content' => 'Content',
+			'step_by_step' => 'StepByStep'
 		),
+		'show_result' => array (),
 
 		'step_back' => array (),
 		'restart_process' => array ()
@@ -71,6 +74,14 @@ $ViewList['wizard'] = array (
 			),
 		),
 		'change_attribute_content' => array (
+			'next_step' => array (
+				'url_alias' => 'wizard'
+			),
+			'step_back' => array (
+				'url_alias' => 'wizard'
+			),
+		),
+		'show_result' => array (
 			'next_step' => array (
 				'url_alias' => 'wizard'
 			),

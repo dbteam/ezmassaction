@@ -6,34 +6,40 @@ class MA_XML_File {
 	protected $xml_str_hun_rle;
 	protected $storage_path;
 	protected $data_arr;
-	protected $errors = array();
+	protected $errors;
 	protected $file_content;
 	protected $file_name;
+	protected $file_original_name;
 	protected $file_full_name;
+	protected $file_full_path;
 	protected $file_ext;
 
 
-	public function __construct ($_data_arr, $_path = '', $_file_name = 'massaction'){
+	public function __construct ($_data_arr = '', $_path = '', $_file_name = ''){
 		$this->sxml_flag = false;
+		$this->xml_str_hun_rle = false;
 		$this->file_ext = '.xml';
+		$this->errors = array ();
 
 		if ($this->set_data_arr ($_data_arr)){
 			$this->create_sxml ($this->data_arr, $this->sxml);
-
-			$this->set_file_full_name ($_file_name);
 
 			$this->make_xml_human_redable ();
 
 			if (!$this->set_storage_path ($_path)){
 				return false;
 			}
+			$this->set_file_name ($_file_name);
+
+			$this->set_file_full_path ();
 		}
 		elseif ($_path){
 			if (!$this->set_storage_path ($_path)){
 				return false;
 			}
+			$this->set_file_name ($_file_name);
 
-			$this->set_file_full_name ($_file_name);
+			$this->set_file_full_path ();
 
 			$this->fetch_file ();
 		}
@@ -43,7 +49,7 @@ class MA_XML_File {
 	}
 
 
-	public function set_data_arr ($_data_arr){
+	public function set_data_arr ($_data_arr = ''){
 		if (!$_data_arr){
 			return false;
 		}
@@ -64,16 +70,26 @@ class MA_XML_File {
 		return $this->data_arr;
 	}
 
-	public function set_file_full_name ($_file_name = 'massaction'){
-		$this->file_name = $_file_name;
+	protected function set_file_name ($_file_name = 'massaction'){
+		$this->file_name = str_replace ('\.xml', '', $_file_name);
+		if (!$this->file_original_name){
+			$this->file_original_name = $this->file_name;
+		}
+
+		$this->set_file_full_name();
+	}
+	protected function set_file_full_name (){
 		$this->file_full_name = $this->file_name. $this->file_ext;
+	}
+	protected function set_file_full_path (){
+		$this->file_full_path = $this->storage_path. $this->file_full_name;
 	}
 
 	/**
 	 * @param $_path
 	 * @return bool
 	 */
-	public function set_storage_path ($_path){
+	protected function set_storage_path ($_path = 'massaction'){
 		if (!trim ($_path)){
 			return false;
 		}
@@ -151,12 +167,12 @@ class MA_XML_File {
 	}
 
 	/**
-	 * @deprecated - please use store_file()
+	 * @deprecated - please to use store_file()
 	 * @param string $_path
 	 * @param string $_file_name
 	 * @return bool
 	 */
-	public function store_file_2 ($_path = '', $_file_name = 'massaction'){
+	public function store_file_2 ($_path = null, $_file_name = null){
 		if (!$_path){
 			return false;
 		}
@@ -165,7 +181,9 @@ class MA_XML_File {
 			return false;
 		}
 
-		$this->set_file_full_name ($_file_name);
+		$this->set_file_name ($_file_name);
+
+		$this->set_file_full_path ();
 
 		if (!$this->store_file ()){
 			return false;
@@ -177,31 +195,28 @@ class MA_XML_File {
 	public function store_file (){
 		if (!$this->xml_str_hun_rle){
 			if (!$this->data_arr){
-				$this->errors[] = 'No data to store.';
+				$this->errors[] = 'No data to store in a file.';
 
 				return false;
 			}
 			$this->create_sxml($this->data_arr, $this->sxml);
 			$this->make_xml_human_redable();
-
-			//return true;
 		}
 
-		$_file_full_path = $this->storage_path. $this->file_full_name;
-
 		$counter = 2;
-		while (file_exists ($_file_full_path)) {
-			$this->set_file_full_name ($this->file_name. '_'. $counter);
+		while (file_exists ($this->file_full_path)) {
 
-			$_file_full_path = $this->storage_path. $this->file_full_name;
+			$this->set_file_name ($this->file_name. '_'. $counter);
+
+			$this->set_file_full_path ();
 
 			$counter++;
 		}
 
-		$file_hendler = fopen ($_file_full_path, 'xt');//xt wt
+		$file_handler = fopen ($this->file_full_path, 'xt');//xt wt
 
-		if (!$file_hendler){
-			$this->errors[] = 'File exist this method cannot rewrite the file. Path: '. $_file_full_path;
+		if (!$file_handler){
+			$this->errors[] = 'File exist this method cannot rewrite the file. Path: '. $this->file_full_path;
 			eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
 
 			return false;
@@ -219,8 +234,8 @@ class MA_XML_File {
 			*/
 		}
 
-		fwrite ($file_hendler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
-		fclose ($file_hendler);
+		fwrite ($file_handler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
+		fclose ($file_handler);
 
 		return true;
 	}
@@ -237,41 +252,39 @@ class MA_XML_File {
 			//return true;
 		}
 
-		$_file_full_path = $this->storage_path. $this->file_full_name;
+		$file_handler = fopen ($this->file_full_path, 'wt');//xt wt
 
-		$file_hendler = fopen ($_file_full_path, 'wt');//xt wt
-
-		if (!$file_hendler){
-			$this->errors[] = 'File exist this method cannot rewrite the file. Path: '. $_file_full_path;
+		if (!$file_handler){
+			$this->errors[] = 'File exist this method cannot rewrite the file. Path: '. $this->file_full_path;
 			eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
 
 			return false;
 		}
 
-		fwrite ($file_hendler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
-		fclose ($file_hendler);
+		fwrite ($file_handler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
+		fclose ($file_handler);
 
 		return true;
 	}
 
 	public function fetch_file (){
 		//$file = fopen ($this->storage_path. $file_full_name, 'w+');
-		$_file_full_path = $this->storage_path. $this->file_full_name;
+		$this->set_file_full_path ();
 
-		if (!file_exists ($_file_full_path) ){
-			$this->errors[] = 'File doesn\'t exist in path: '. $_file_full_path;
+		if (!file_exists ($this->file_full_path) ){
+			$this->errors[] = 'File doesn\'t exist in path: '. $this->file_full_path;
 			eZDebug::writeWarning (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
 			return false;
 		}
 
-		$handle = fopen ($_file_full_path, "r");
+		$handle = fopen ($this->file_full_path, "rt");
 		if (!$handle){
-			$this->errors[] = 'No permission to read file: '. $_file_full_path;
+			$this->errors[] = 'No permission to read file: '. $this->file_full_path;
 			eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
 
 			return false;
 		}
-		$this->file_content = fread ($handle, filesize ($_file_full_path));
+		$this->file_content = fread ($handle, filesize ($this->file_full_path));
 
 		fclose ($handle);
 
@@ -281,6 +294,9 @@ class MA_XML_File {
 		return true;
 	}
 
+	public function get_file_name (){
+
+	}
 	public function get_file_content (){
 		return $this->file_content;
 	}

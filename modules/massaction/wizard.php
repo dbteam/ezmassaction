@@ -28,6 +28,10 @@ $stepArray[] = array(
 	'file' => 'attribute_content.php',
 	'class' => 'Attribute_content'
 );
+$stepArray[] = array(
+	'file' => 'ma_result.php',
+	'class' => 'MA_Result'
+);
 
 $structure = '/classes/'. $module->currentView (). '/';
 /**
