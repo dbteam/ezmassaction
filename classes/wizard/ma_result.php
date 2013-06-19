@@ -27,10 +27,16 @@ class MA_Result extends MAWizardBase{
 	}
 
 	protected function delegate_work_to_cron (){
+		echo '<br />';
 		echo __METHOD__;
 	}
 	protected function change_attribute_content_now (){
+		echo '<br />';
 		echo __METHOD__;
+		die ();
+
+
+		//return eZModule::HOOK_STATUS_CANCEL_RUN;
 	}
 	function process (){
 		if ($this->parameters['step_by_step_flag']){
@@ -40,7 +46,7 @@ class MA_Result extends MAWizardBase{
 			$this->change_attribute_content_now ();
 		}
 
-		$this->prepare_current_step();
+		$this->prepare_current_step ();
 		$this->savePersistentData ();
 		//$this->setVariable ('parameters', $this->parameters);
 
