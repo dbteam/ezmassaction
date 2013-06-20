@@ -1,182 +1,104 @@
 <?php
 
-
 require 'autoload.php';
 
+function microtime_float()
+{
+	return microtime( true );
+}
 
-// Init script
-
-$cli = eZCLI::instance();
-$endl = $cli->endlineString();
-
-set_time_limit(60);
+set_time_limit (0);
 
 $script = eZScript::instance(
 	array(
 		'description' => (
-			"CLI script. \n\n". "Will change attributes content set with wizard. \n". "\n". 'content_changer.php -s site_admin'
+			"CLI script. \n\n".
+			"Will change attributes content set with wizard. \n".
+			"\n".
+			'content_changer.php -s site_admin'
 		),
 		'use-session' => false,
 		'use-modules' => true,
 		'use-extensions' => true
 	)
 );
-$script->startup();
+$my_ch = new Content_Changer ();
+$my_ch->
 
-$options = $script->getOptions (
-//	'[db-user:][db-password:][db-database:][db-driver:][sql]
-	'[parent-catalog:][filename-part:][admin-user:][scriptid:]',
-	'',
-  array (
-//		'db-host' => 'Database host',
-//		'db-user' => 'Database user',
-//		'db-password' => 'Database password',
-//		'db-database' => 'Database name',
-//		'db-driver' => 'Database driver',
-//		'sql' => 'Display sql queries',
-		'parent-catalog' => 'Catalog contains the file',
-		'filename-part' => 'Part of filename to read with serialized object data (without extension)',
-		'admin-user' => 'Alternative login for the user to perform operation as',
-		'scriptid' => 'Used by the Script Monitor extension, do not use manually'
-	)
-);
-$script->initialize();
+unset ($my_ch);
 
-// Log in admin user
-if ( isset( $options['admin-user'] ) )
-{
-	$adminUser = $options['admin-user'];
-}
-else
-{
-	$adminUser = 'admin';
-}
-$user = eZUser::fetchByName( $adminUser );
-if ( $user )
-	eZUser::setCurrentlyLoggedInUser( $user, $user->attribute( 'id' ) );
-else
-{
-	$cli->error( 'Could not fetch admin user object' );
-	$script->shutdown (1);
-	return;
-}
+$script->shutdown (0);
 
 
-// Take care of script monitoring
-$scheduledScript = false;
-if (
-	isset ($options['scriptid'])
-	and in_array ('ezmassaction', eZExtension::activeExtensions())
-	and class_exists ('eZScheduledScript')
-){
-	$scriptID = $options['scriptid'];
-	$scheduledScript = eZScheduledScript::fetch ($scriptID);
-}
+
+class Content_Changer{
+	protected $db;
+	protected $script;
+	protected $cli;
+	protected $options;
+
+	protected $siteaccess;
+	protected $user_admin_name;
+	protected $user_admin;
+	protected $show_SQL_flag;
+
+	protected $log_file_name;
+	protected $log_file_full_name;
+	protected $ma_nodes_list;
 
 
-// get data from file
-/**
- * @param $filename_part = 'module_name/file_name'
- */
-if (!empty ($options['filename-part'])){
-	$filename_part = $options['filename-part'];
-}
-else{
-	$cli->error ('Missing filename !');
-	$script->shutdown();
-}
+	function __construct (eZScript $_script){
+		$this->set_log_file_name();
 
-//$filename = 'file_name_without_file_extension';
-// 'my_file'
-$filename_part = str_replace ('\.xml', '', $filename_part);
+		$this->cli = eZCLI::instance();
 
-$parent_catalog = $options['parent-catalog'];
+		$this->script = $_script;
+		$this->script->startup();
+		$this->set_options();
+		$this->script->initialize();
 
+		$this->db = eZDB::instance ();
 
-//'var/cache/<cache dir setted in site.ini>/module_name/' . $filename_part . '.xml';
-// egsample: modulname/modulename_2. '.xml'
-// egsample: modulname/modulename_2
-// egsample: $parent_catalog = modulename
-if (!$parent_catalog){
-	$parent_catalog  = preg_replace ('/_\d/', '', $filename_part);
-}
-$_file_path = eZSys::rootDir (). '/'. eZSys::storageDirectory (). '/'. $parent_catalog. '/' ;
+		$this->user_admin_name = ($this->options['user-admin-name']? $this->options['user-admin-name']: 'admin');
+		$this->user_admin = eZUser::fetchByName( $this->user_admin_name );
+		if ($this->user_admin){
+			eZUser::setCurrentlyLoggedInUser ($this->user_admin, $this->user_admin->attribute ('id'));
+		}
+		$this->
 
-$ma_xml = new MA_XML_File ('', $_file_path, $filename_part );
-if (!$ma_xml){
-	$cli->error( $ma_xml->get_error() );
-	$script->shutdown (1);
-
-	return;
-}
-if (!$ma_xml->fetch_file ()){
-
-	$cli->error ($ma_xml->get_error (). ' Look to log file.');
-	$script->shutdown (1);
-
-	return;
-}
-
-$cli->endlineString ();
-$cli->output ('Procesing... ');
-
-$xml_arr = array ();
-$xml_arr = $ma_xml->get_data_arr ();
-if (!isset ($xml_arr['cron'])){
-	$xml_arr['cron']['step'] = 0;
-	$xml_arr['cron']['offset'] = 0;
-	$xml_arr['cron']['limit'] = 10;
-	$xml_arr['cron']['subtree'] = array ();
-}
-
-$db = eZDB::instance();
-
-if ( $scheduledScript ){
-	$scheduledScript->updateProgress( 1 ); // after class conversion set process as 1%
-}
-
-$_subtree_counter = 0;
-
-foreach ($xml_arr['parents_nodes_ids'] as $_key => $_id){
-	//$ma_tree_nodes = new MA_Content_Object_Tree_Nodes_List($_id, $xml_arr['section_identifier'], $xml_arr['class_identifier'], $xml_arr['locales_codes']);
-
-	$ma_tree_nodes = new MA_Content_Object_Tree_Nodes_List (
-		$_id, $xml_arr['section_identifier'], $xml_arr['class_identifier'], $xml_arr['locales_codes']
-	);
-
-	$ma_tree_nodes->set_to_change_nodes_tree_attribute_content (
-		$xml_arr['attribute_identifier'], $xml_arr['attribute_content'], true, $xml_arr['cron']['offset'], $xml_arr['cron']['limit']
-	);
-
-	do{
-		$ma_tree_nodes->change_nodes_tree_attribute_content ();
-		$xml_arr['cron']['subtree'][$_subtree_counter] = $ma_tree_nodes->get_change_result ();
+		$this->set_show_SQL();
 	}
 
-	while ($xml_arr['cron']['subtree'][$_subtree_counter]['end_flag']);
-
-	// now a small scam
-	$progressPercentage = (($xml_arr['cron']['subtree'][$_subtree_counter]['counter'] / $xml_arr['cron']['subtree'][$_subtree_counter]['count'])
-		/ (count ($xml_arr['parents_nodes_ids']) - $_subtree_counter) * 100);
-
-	$cli->output( sprintf( ' %01.1f %%', $progressPercentage ) );
-
-	if ($scheduledScript){
-		$scheduledScript->updateProgress ($progressPercentage);
+	protected function set_ma_nodes_list(){
+		$this->ma_nodes_list = new MA_Content_Object_Tree_Nodes_List(
+			$this->options['']
+		)
+	}
+	protected function set_show_SQL (){
+		$this->show_SQL_flag = $this->options['sql'] ? true : false;
+		$this->db->setIsSQLOutputEnabled ($this->show_SQL_flag);
+	}
+	protected function set_options (){
+		$this->options = $this->script->getOptions(
+			"[parent-catalog:][filename-part:][user-admin-name:][scriptid:][sql]",
+			"",
+			array(
+				'parent-catalog' => 'Catalog contains the file',
+				'filename-part' => 'XML file name with serialized data (without extension, without module name and file extension)',
+				'user-admin-name' => 'Alternative login for the user to perform operation as, if no write script use default name: admin',
+				'scriptid' => 'Used by the Script Monitor extension, do not use manually',
+				'sql' => 'If write script display sql queries'
+			)
+		);
+	}
+	protected function set_log_file_name (){
+		$this->log_file_name = __CLASS__;
+		$this->set_log_file_full_name ();
+	}
+	protected function set_log_file_full_name (){
+		$this->log_file_full_name = $this->log_file_name. '.log';
 	}
 
-	$_subtree_counter++;
+
+
 }
-
-$ma_xml->set_data_arr ($xml_arr);
-$ma_xml->rewrite_file ();
-
-unset ($ma_xml);
-unset ($ma_tree_nodes);
-unset ($xml_arr);
-
-$cli->endlineString ();
-$cli->output ('Well done!');
-
-$script->shutdown();
-?>

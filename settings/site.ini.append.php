@@ -20,6 +20,6 @@ TranslationExtensions[]=ezmassaction
 
 
 [TemplateSettings]
-#ExtensionAutoloadPath[]=ezmassaction
+ExtensionAutoloadPath[]=ezmassaction
 
 */ ?>
