@@ -13,6 +13,7 @@ class MA_XML_File {
 	protected $file_full_name;
 	protected $file_full_path;
 	protected $file_ext;
+	protected $error;
 
 
 	public function __construct ($_data_arr = '', $_path = '', $_file_name = ''){
@@ -20,6 +21,8 @@ class MA_XML_File {
 		$this->xml_str_hun_rle = false;
 		$this->file_ext = '.xml';
 		$this->errors = array ();
+		$this->error = MA_Error::get_instance ();
+
 
 		if ($this->set_data_arr ($_data_arr)){
 			$this->create_sxml ($this->data_arr, $this->sxml);
@@ -100,7 +103,14 @@ class MA_XML_File {
 
 		if (!is_dir (rtrim ($this->storage_path, '/') ) ){
 			if (!eZDir::mkdir ($this->storage_path, 0776, true) ){
+				/**
+				 * Use MA_Error singletone object
+				 *
+				 * @deprecated
+				 * @var $this->errors[] = ''
+				 */
 				$this->errors[] = 'Cannot create directory no permission, path: '. $this->storage_path;
+				$this->error->set_error($this->get_error(), __METHOD__, __LINE__, MA_Error::ERROR);
 				eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
 
 				$this->storage_path = '';
@@ -114,9 +124,9 @@ class MA_XML_File {
 
 	protected function make_xml_human_redable (){
 		$dom = new DOMDocument;
-		$dom->preserveWhiteSpace = FALSE;
+		$dom->preserveWhiteSpace = false;
 		$dom->loadXML($this->sxml->asXML());
-		$dom->formatOutput = TRUE;
+		$dom->formatOutput = true;
 
 		$this->xml_str_hun_rle = $dom->saveXML();
 	}
@@ -272,15 +282,17 @@ class MA_XML_File {
 		$this->set_file_full_path ();
 
 		if (!file_exists ($this->file_full_path) ){
-			$this->errors[] = 'File doesn\'t exist in path: '. $this->file_full_path;
-			eZDebug::writeWarning (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
+			//$this->errors[] = 'File doesn\'t exist in path: '. $this->file_full_path;
+			$this->error->set_error('File doesn\'t exist in path: '. $this->file_full_path, __METHOD__, __LINE__, MA_Error::ERROR);
+			eZDebug::writeWarning ($this->error->get_error ());
 			return false;
 		}
 
 		$handle = fopen ($this->file_full_path, "rt");
 		if (!$handle){
-			$this->errors[] = 'No permission to read file: '. $this->file_full_path;
-			eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
+			//$this->errors[] = 'No permission to read file: '. $this->file_full_path;
+			$this->error->set_error('No permission to read file: '. $this->file_full_path, __METHOD__, __LINE__, MA_Error::ERROR);
+			eZDebug::writeError ($this->error->get_error_message());
 
 			return false;
 		}

@@ -45,9 +45,12 @@ class Content_Changer{
 	protected $log_file_name;
 	protected $log_file_full_name;
 	protected $ma_nodes_list;
+	protected $ma_xml_file;
+	protected $error;
 
 
 	function __construct (eZScript $_script){
+		$this->error = MA_Error::get_instance();
 		$this->set_log_file_name();
 
 		$this->cli = eZCLI::instance();
@@ -56,6 +59,7 @@ class Content_Changer{
 		$this->script->startup();
 		$this->set_options();
 		$this->script->initialize();
+		$this->set_ez_sheduled_script();
 
 		$this->db = eZDB::instance ();
 
@@ -64,16 +68,11 @@ class Content_Changer{
 		if ($this->user_admin){
 			eZUser::setCurrentlyLoggedInUser ($this->user_admin, $this->user_admin->attribute ('id'));
 		}
-		$this->
+		$this->set_ma_nodes_list();
 
 		$this->set_show_SQL();
 	}
 
-	protected function set_ma_nodes_list(){
-		$this->ma_nodes_list = new MA_Content_Object_Tree_Nodes_List(
-			$this->options['']
-		)
-	}
 	protected function set_show_SQL (){
 		$this->show_SQL_flag = $this->options['sql'] ? true : false;
 		$this->db->setIsSQLOutputEnabled ($this->show_SQL_flag);
@@ -91,6 +90,28 @@ class Content_Changer{
 			)
 		);
 	}
+
+	protected function set_ma_xml_file (){
+		$this->ma_xml_file = new MA_XML_File(
+			 null, $this->options[''],);
+	}
+
+	protected function set_ma_nodes_list (){
+		$this->ma_nodes_list = new MA_Content_Object_Tree_Nodes_List(
+			$this->options['']
+		);
+
+		if (!$this->ma_nodes_list){
+			$this->error->add_parent_source_line(__METHOD__, __LINE__);
+			return false;
+		}
+		return true;
+	}
+	protected function set_ez_sheduled_script (){
+
+
+	}
+
 	protected function set_log_file_name (){
 		$this->log_file_name = __CLASS__;
 		$this->set_log_file_full_name ();

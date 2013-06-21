@@ -7,6 +7,7 @@
  */
 
 class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
+
 	protected $parent_node;
 	protected $parent_node_id;
 	protected $nodes_tree_list;
@@ -41,21 +42,35 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 	protected $has_error;
 	protected $cron_flag;
 
+	protected $error;
+
 	protected $db;
 
 
 	public function __construct ($_parent_node, $_section, $_class, $_languages, $_depth = 0){
-		if (!$this->set_own_parameters ($_parent_node, $_section, $_class, $_languages, $_depth)){
+		$this->has_error = false;
+		$this->cron_flag = false;
+		$this->error = MA_Error::get_instance ();
+
+		$this->set_parent_node ($_parent_node);
+		$this->set_section ($_section);
+		$this->set_class ($_class);
+		$this->set_languages ($_languages);
+		$this->set_depth ($_depth);
+
+		//$this->
+		//$this->set_offset ($_offset);
+		//$this->set_limit ($_limit);
+
+		if ($this->error->has_error()){
 			return false;
 		}
 
 	}
 
-
 	protected function set_parent_node ($_parent_node){
 		if (!$_parent_node){
-			$this->add_error ('Parent Node missing. '. __METHOD__. ' '. __LINE__);
-
+			$this->error->set_error('$_parent_node missing.', __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
 
@@ -72,7 +87,7 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 	protected function set_section ($_section = 'standard'){
 		if (!$_section){
 			//$this->add_error ('Section missing.'. __METHOD__. ' '. __LINE__);
-
+			//$this->error->set_error('$_section missing. ', __METHOD__, __LINE__, MA_Error::NOTICE);
 			//return false;
 		}
 
@@ -96,8 +111,7 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 	}
 	protected function set_class ($_class){
 		if (!$_class){
-			$this->add_error ('Class missing.'. __METHOD__. ' '. __LINE__);
-
+			$this->error->set_error('Class missing.', __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
 
@@ -121,7 +135,7 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 	}
 	protected function set_languages ($_languages){
 		if (count ($_languages) < 1){
-			$this->add_error ('$_languages missing. '. __METHOD__. ' '. __LINE__);
+			$this->error->set_error('Languages missing.', __METHOD__, __LINE__, MA_Error::ERROR);
 
 			return false;
 		}
@@ -132,7 +146,7 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 	}
 	protected function set_depth ($_depth = 2){
 		if (!is_numeric ($_depth)){
-			$this->add_error ('$_depth is not a number. '. __METHOD__. ' '. __LINE__);
+			$this->error->set_error('Depth is not a number.', __METHOD__, __LINE__, MA_Error::ERROR);
 
 			return false;
 		}
@@ -141,6 +155,8 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 
 		return true;
 	}
+
+	/*
 	public function set_own_parameters ($_parent_node, $_section, $_class, $_languages, $_depth){
 		$this->has_error = false;
 		$this->cron_flag = false;
@@ -161,11 +177,12 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 			return false;
 		}
 	}
+	*/
 
 	protected function set_attribute_identifier ($_attribute_identifier){
 		if (!$_attribute_identifier){
-			$this->add_error ('$_attribute_identifier missing. '. __METHOD__. ' '. __LINE__);
-
+			//$this->add_error ('$_attribute_identifier missing. '. __METHOD__. ' '. __LINE__);
+			$this->error->set_error('Attribute identifier missing.', __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
 		$this->attribute_identifier = $_attribute_identifier;
@@ -173,8 +190,8 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 	}
 	protected function set_offset ($_offset = 0){
 		if (!is_numeric ($_offset)){
-			$this->add_error ('$_offset is not a number. '. __METHOD__. ' '. __LINE__);
-
+			//$this->add_error ('$_offset is not a number. '. __METHOD__. ' '. __LINE__);
+			$this->error->set_error('Offset is not a number.', __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
 		else{
@@ -188,7 +205,8 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 			$_limit = 50;
 		}
 		if (!is_numeric ($_limit)){
-			$this->add_error ('$_count is not a number. '. __METHOD__. ' '. __LINE__);
+			//$this->add_error ('$_count is not a number. '. __METHOD__. ' '. __LINE__);
+			$this->error->set_error('Count is not a number.', __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
 		else{
@@ -198,7 +216,8 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 	}
 	protected function set_attribute_content ($_attribute_content){
 		if (!$_attribute_content){
-			$this->add_error ('$_attribute_content missing. '. __METHOD__. ' '. __LINE__);
+			//$this->add_error ('$_attribute_content missing. '. __METHOD__. ' '. __LINE__);
+			$this->error->set_error('Attribute content missing.', __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
 		$this->attribute_content = $_attribute_content;
@@ -231,7 +250,7 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 		$this->result['counter'] = 0;
 		$this->result['count'] = $this->nodes_tree_list_count;
 
-		if ($this->has_error){
+		if ($this->error->has_error()){
 			return false;
 		}
 		return true;
