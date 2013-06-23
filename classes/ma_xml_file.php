@@ -109,9 +109,8 @@ class MA_XML_File {
 				 * @deprecated
 				 * @var $this->errors[] = ''
 				 */
-				$this->errors[] = 'Cannot create directory no permission, path: '. $this->storage_path;
-				$this->error->set_error($this->get_error(), __METHOD__, __LINE__, MA_Error::ERROR);
-				eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
+				//$this->errors[] = 'Cannot create directory no permission, path: '. $this->storage_path;
+				$this->error->set_error('Cannot create directory no permission, path: '. $this->storage_path, __METHOD__, __LINE__, MA_Error::ERROR);
 
 				$this->storage_path = '';
 
@@ -205,8 +204,7 @@ class MA_XML_File {
 	public function store_file (){
 		if (!$this->xml_str_hun_rle){
 			if (!$this->data_arr){
-				$this->errors[] = 'No data to store in a file.';
-
+				$this->error->set_error('No data to store in a file.', __METHOD__, __LINE__, MA_Error::WARNING);
 				return false;
 			}
 			$this->create_sxml($this->data_arr, $this->sxml);
@@ -226,9 +224,8 @@ class MA_XML_File {
 		$file_handler = fopen ($this->file_full_path, 'xt');//xt wt
 
 		if (!$file_handler){
-			$this->errors[] = 'File exist this method cannot rewrite the file. Path: '. $this->file_full_path;
-			eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
-
+			$this->error->set_error('File exist this method cannot rewrite the file. Path: '. $this->file_full_path, __METHOD__, __LINE__,
+				MA_Error::ERROR);
 			return false;
 		}
 		else{
@@ -252,8 +249,7 @@ class MA_XML_File {
 	public function rewrite_file (){
 		if (!$this->xml_str_hun_rle){
 			if (!$this->data_arr){
-				$this->errors[] = 'No data to store.';
-
+				$this->error->set_error('No data to store.', __METHOD__, __LINE__, MA_Error::ERROR);
 				return false;
 			}
 			$this->create_sxml($this->data_arr, $this->sxml);
@@ -265,9 +261,8 @@ class MA_XML_File {
 		$file_handler = fopen ($this->file_full_path, 'wt');//xt wt
 
 		if (!$file_handler){
-			$this->errors[] = 'File exist this method cannot rewrite the file. Path: '. $this->file_full_path;
-			eZDebug::writeError (__METHOD__. ' '.__LINE__. ': '. $this->errors[0]);
-
+			$this->error->set_error('File exist this method cannot rewrite the file. Path: '. $this->file_full_path, __METHOD__, __LINE__,
+				MA_Error::ERROR);
 			return false;
 		}
 
@@ -284,7 +279,6 @@ class MA_XML_File {
 		if (!file_exists ($this->file_full_path) ){
 			//$this->errors[] = 'File doesn\'t exist in path: '. $this->file_full_path;
 			$this->error->set_error('File doesn\'t exist in path: '. $this->file_full_path, __METHOD__, __LINE__, MA_Error::ERROR);
-			eZDebug::writeWarning ($this->error->get_error ());
 			return false;
 		}
 
@@ -292,8 +286,6 @@ class MA_XML_File {
 		if (!$handle){
 			//$this->errors[] = 'No permission to read file: '. $this->file_full_path;
 			$this->error->set_error('No permission to read file: '. $this->file_full_path, __METHOD__, __LINE__, MA_Error::ERROR);
-			eZDebug::writeError ($this->error->get_error_message());
-
 			return false;
 		}
 		$this->file_content = fread ($handle, filesize ($this->file_full_path));
@@ -307,7 +299,7 @@ class MA_XML_File {
 	}
 
 	public function get_file_name (){
-
+		return $this->file_name;
 	}
 	public function get_file_content (){
 		return $this->file_content;

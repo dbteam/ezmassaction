@@ -15,12 +15,13 @@ class MA_Error {
 	protected $message;
 	protected $source;//Class::method() or/and file, line,
 	protected $type;
+	protected $path;
 
-	const DEBUG = 7;
-	const NOTICE= 6;
-
-	const WARNING = 3;
 	const ERROR = 1;
+	const WARNING = 3;
+	const NOTICE = 6;
+	const DEBUG = 7;
+
 
 	protected static $o_instance = false;
 
@@ -40,19 +41,25 @@ class MA_Error {
 		$this->error = array(
 			'message' => '',
 			'source' => '',
+			'line' => '',
 			'type' => MA_Error::DEBUG
 		);
+		$this->path = array();
 	}
 
-	public function set_error ($messagee = '', $source = '', $line = null, MA_ERROR $type = ''){
+	public function set_error ($messagee = '', $source = '', $line = null, MA_Error $type = '', $ezdebug_fg = true){
 		$this->error = array ();
 
 		$this->error['message'] = $messagee;
-		$this->error['source'] = $source;
+		$this->error['source'] = implode ('', $this->path). $source;
 		$this->error['line'] = $line;
-		$this->error['type'] = ($type? $type: MA_Error::MA_DEBUG);
+		$this->error['type'] = ($type? $type: self::DEBUG);
 
 		$this->add_error();
+
+		if ($ezdebug_fg){
+			$this->write_ezdebug();
+		}
 	}
 	protected function add_error (){
 		//if ($this->error['type'] < self::NOTICE){
@@ -61,7 +68,7 @@ class MA_Error {
 		$this->errors_list[] = $this->error;
 	}
 
-	public function get_error ($as_string_fg = true, $unset_error_fg = false) {
+	public function get_error ($as_string_fg = true, $unset_error_fg = false){
 		if (!reset ($this->errors_list)){
 			return false;
 		}
@@ -73,6 +80,7 @@ class MA_Error {
 		}
 		else{
 			$error = $this->error;
+			$this->error = array();
 		}
 
 		if ($as_string_fg){
@@ -85,10 +93,29 @@ class MA_Error {
 		$errors = $this->errors_list;
 
 		if ($unset_errors_flag){
-
-			$this->clean_errors();
+			$this->clear_errors ();
 		}
 		return $errors;
+	}
+
+	protected function write_ezdebug (){
+		switch ($this->error['type']){
+			case self::ERROR:
+				eZDebug::writeError ($this->get_error());
+				break;
+			case self::WARNING:
+				eZDebug::writeWarning ($this->get_error());
+				break;
+			case self::NOTICE:
+				eZDebug::writeNotice ($this->get_error());
+				break;
+			case self::DEBUG:
+				eZDebug::writeDebug ($this->get_error());
+				break;
+			default:
+				eZDebug::writeDebug ($this->get_error());
+				break;
+		}
 	}
 	public function has_error (){
 		if (!reset ($this->errors_list)){
@@ -100,10 +127,17 @@ class MA_Error {
 		$this->errors_list = array ();
 	}
 	public function add_parent_source_line ($source = '', $line = null){
-		$this->errors_list[0]['source'] = $source. ' Line: '. $line. ':: '. $this->errors_list[0]['source'];
+		$this->path[] = $source. ' Line: '. $line. ' :: ';
 	}
-	public function get_error_message (){
-		$this->error = $this->get_error(false);
+	public function pop_parent_source_line (){
+		array_pop($this->path);
+		$this->path = array_values($this->path);
+	}
+	public function clear_parent_source_line (){
+		$this->path = array();
+	}
+	public function get_error_message ($unset_error_fg = false){
+		$this->error = $this->get_error(false, $unset_error_fg);
 		return $this->error['message'];
 	}
 

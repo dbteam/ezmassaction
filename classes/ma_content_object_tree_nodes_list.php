@@ -136,7 +136,6 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 	protected function set_languages ($_languages){
 		if (count ($_languages) < 1){
 			$this->error->set_error('Languages missing.', __METHOD__, __LINE__, MA_Error::ERROR);
-
 			return false;
 		}
 
