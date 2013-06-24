@@ -215,7 +215,7 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 		}
 		return true;
 	}
-	protected function set_attribute_content ($_attribute_content){
+	protected function set_attribute_content ($_attribute_content = false){
 		if (!$_attribute_content){
 			//$this->add_error ('$_attribute_content missing. '. __METHOD__. ' '. __LINE__);
 			$this->error->set_error('Attribute content missing.', __METHOD__, __LINE__, MA_Error::ERROR);
@@ -229,21 +229,16 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 			$this->cron_flag = true;
 		}
 	}
-	public function set_to_change_nodes_tree_attribute_content ($_attribute_identifier, $_attribute_content, $_cron_flag, $_offset, $_limit = 0){
+	public function set_to_change_nodes_tree_attribute_content ($_attribute_identifier, $_attribute_content, $_cron_flag = false, $_offset = 0, $_limit = 0){
 		$this->set_attribute_identifier ($_attribute_identifier);
 
 		$this->set_attribute_content ($_attribute_content);
 
 		$this->set_cron_flag ($_cron_flag);
-
 		if ($this->cron_flag){
 			$this->set_offset ($_offset);
 			$this->set_limit ($_limit);
 		}
-
-		$this->nodes_tree_list_changed = array ();
-		$this->set_all_nodes_tree_count();
-		$this->fetch_last_node_to_change ();
 
 		$this->result = array ();
 		$this->result['limit'] = $this->limit;
@@ -264,7 +259,9 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 
 	public function change_nodes_tree_attribute_content (){
 		$this->fetch_nodes_tree_list ();
+
 		$this->change_nodes_tree_attribute_content_ ();
+
 		$this->set_to_next_use ();
 		$this->set_change_result ();
 
@@ -273,7 +270,7 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 	protected function set_change_result (){
 		//$this->result['counter'] = count ($this->nodes_tree_list_changed);
 
-		if ($this->last_node_to_change->attribute ('mode_id') == end ($this->nodes_tree_list_changed)->attribute ('node_id')){
+		if ($this->last_node_to_change->attribute ('node_id') == end ($this->nodes_tree_list_changed)->attribute ('node_id')){
 			$this->result['end_flag'] = true;
 		}
 		else{
@@ -306,23 +303,43 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 			foreach ($this->languages_codes as $_code){
 				if (in_array ($_code, $_avalaible_languages)){
 					$_datamap = $_object->fetchDataMap (false, $_code);
+
+					//$content_attribute = $_datamap[$this->attribute_identifier];
+					foreach($_datamap as $_key3 => $value){
+						if ($_key3 == $this->attribute_identifier){
+							$content_attribute = $value;
+						}
+					}
+
+					//die();
 					//$this->result['objects']['langs']['list'][$_object->attribute ('id')]['atttribute']['content']['previous']
 					//	= $_datamap[$this->attribute_identifier]->content();
 					$this->log->write (
+						"\n",
 						'Node id: '. $_node->attribute ('node_id'). " ". 'Object id: '. $_node->attribute ('contentobject_id'). " ". 'Language: '. $_code. "\n".
-						'Content previous: '. $_datamap[$this->attribute_identifier]->content(). "\n"
+						'Content previous: '. $content_attribute->content(). "\n"
 					);
 
-					$_datamap[$this->attribute_identifier]->setContent ($this->attribute_content);
+					if ($content_attribute->isSimpleStringInsertionSupported()){
+						echo 'abc <br />';
+						$arr__ = array('xx');
 
-					$_datamap[$this->attribute_identifier]->store ();
+						//$content_attribute->insertSimpleString ($_object, eZContentObjectVersion::STATUS_PUBLISHED, $_code,
+						//	$content_attribute, $this->attribute_content, $arr__);
+					}
+					//else{
+						//to do
+					//}
+					//$content_attribute->setContent ($this->attribute_content);
+
+					$content_attribute->store ();
 
 
 					$this->result['objects']['langs']['counter']++;
 				}
 			}
 			//$_node->store();
-			$this->nodes_tree_list_changed[] = $_node->attribute ('node_id');
+			$this->nodes_tree_list_changed[] = $_node;
 			$this->result['nodes']['counter'] = $_key;
 
 			$_object->expireAllViewCache ();
@@ -341,6 +358,9 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 		}
 	}
 	protected function fetch_nodes_tree_list (){
+		$this->set_all_nodes_tree_count();
+		$this->fetch_last_node_to_change ();
+
 		if (!$this->cron_flag){
 			$_function_parameters = array (
 				'parent_node_id' => $this->parent_node_id,
@@ -383,24 +403,32 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 
 	}
 	protected function set_all_nodes_tree_count (){
-		$_function_parameters = array (
-			'parent_node_id' => $this->parent_node_id,
-			//'sort_by' => array ('path', false()),
-			//'sort_by' => array ('published', true),
-			'class_filter_type' => array ('include'),
-			'class_filter_array' => array ($this->class_identifier),
-			'as_object' => true,
-			'depth' => $this->depth,
-			'ignore_visibility' => false,
-			'load_data_map' => false
-		);
+		$this->nodes_tree_list_changed = array ();
 
-		$this->nodes_tree_list_count = count (
-			eZFunctionHandler::execute (
-				'content', 'list',
-				$_function_parameters
-			)
-		);
+		if (!$this->cron_flag){
+			$this->nodes_tree_list_count = count ($this->nodes_tree_list);
+		}
+		else{
+			$_function_parameters = array (
+				'parent_node_id' => $this->parent_node_id,
+				//'sort_by' => array ('path', false()),
+				//'sort_by' => array ('published', true),
+				'class_filter_type' => array ('include'),
+				'class_filter_array' => array ($this->class_identifier),
+				'as_object' => true,
+				'depth' => $this->depth,
+				'ignore_visibility' => false,
+				'load_data_map' => false
+			);
+
+			$this->nodes_tree_list_count = count (
+				eZFunctionHandler::execute (
+					'content', 'list',
+					$_function_parameters
+				)
+			);
+		}
+
 	}
 
 	protected function fetch_last_node_to_change (){
@@ -416,9 +444,11 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 			'ignore_visibility' => false,
 			'load_data_map' => false
 		);
-		$this->last_node_to_change = eZFunctionHandler::execute (
-			'content', 'list',
-			$_function_parameters
+		$this->last_node_to_change = reset(
+			eZFunctionHandler::execute (
+				'content', 'list',
+				$_function_parameters
+			)
 		);
 	}
 

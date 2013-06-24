@@ -28,6 +28,7 @@ class Attributes_list extends MAWizardBase{
 
 		if ($this->Module->hasActionParameter ('section_id') ) {
 			$this->parameters['section_id'] = (int) $this->Module->actionParameter ('section_id');
+
 		}
 
 		if ($this->Module->actionParameter ('class_id') < 1){

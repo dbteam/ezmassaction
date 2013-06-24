@@ -22,6 +22,65 @@ class Attribute_content extends MAWizardBase{
 		echo __METHOD__;
 	}
 
+	protected function set_parameters_attribute_content (){
+		$this->parameters['attribute_content'] = $_POST[$this->content_object_attribute_post_key];
+	}
+	protected function set_parameters_cli_flag (){
+		unset($this->parameters['step_by_step']);
+		$this->parameters['cli_flag'] = false;
+		if ($this->Module->hasActionParameter ('step_by_step') and $this->Module->actionParameter ('step_by_step')){
+			$this->parameters['cli_flag'] = true;
+		}
+	}
+	function postCheck (){
+		if (!$this->Module->isCurrentAction ('change_attribute_content')){
+			$this->prepare_to_repeat_step ();
+
+			return false;
+		}
+
+		$this->set_var_parameters_attr_identifier ();
+		$this->set_var_parameters_class_identifier ();
+		$this->set_var_parameters_section_identifier();
+
+		if (!$this->search_attribute_in_post ()){
+			$this->prepare_to_repeat_step();
+
+			return false;
+		}
+		$this->set_parameters_attribute_content ();
+
+		$this->set_parameters_cli_flag ();
+
+
+		$this->error->add_parent_source_line(__METHOD__);
+
+		$this->ma_xml = new MA_XML_File ($this->parameters, $this->storage_path, $this->Module->currentModule ());
+		if (!$this->ma_xml->store_file ()){
+			$this->ErrorList[] = $this->error->get_error_message();
+			$this->log->write($this->error->get_error(true, true));
+			$this->error->pop_parent_source_line();
+			return false;
+		}
+		$this->error->pop_parent_source_line();
+
+		$this->parameters['file_name'] = $this->ma_xml->get_file_name ();
+
+		if ($this->parameters['cli_flag']){
+			$this->delegate_work_to_cli ();
+		}
+		else{
+			if (!$this->change_attribute_content())
+			{
+				return false;
+			}
+		}
+
+
+		//$this->setMetaData ('current_step', $this->metaData ('current_step') - 1);
+
+		return true;
+	}
 	protected function search_attribute_in_post (){
 		$post_keys = array_keys ($_POST);
 
@@ -58,63 +117,8 @@ class Attribute_content extends MAWizardBase{
 	protected function set_var_parameters_class_identifier (){
 		$this->parameters['class_identifier'] = eZContentClass::classIdentifierByID ($this->parameters['class_id']);
 	}
-	protected function set_parameters_attribute_content (){
-		$this->parameters['attribute_content'] = $_POST[$this->content_object_attribute_post_key];
-	}
-	protected function set_parameters_cli_flag (){
-		unset($this->parameters['step_by_step']);
-		$this->parameters['cli_flag'] = false;
-		if ($this->Module->hasActionParameter ('step_by_step') and $this->Module->actionParameter ('step_by_step')){
-			$this->parameters['cli_flag'] = true;
-		}
-	}
-	function postCheck (){
-		if (!$this->Module->isCurrentAction ('change_attribute_content')){
-			$this->prepare_to_repeat_step ();
-
-			return false;
-		}
-
-		$this->set_var_parameters_attr_identifier ();
-		$this->set_var_parameters_class_identifier ();
-
-		if (!$this->search_attribute_in_post ()){
-			$this->prepare_to_repeat_step();
-
-			return false;
-		}
-		$this->set_parameters_attribute_content ();
-
-		$this->set_parameters_cli_flag ();
-
-
-		$this->error->add_parent_source_line(__METHOD__);
-
-		$this->ma_xml = new MA_XML_File ($this->parameters, $this->storage_path, $this->Module->currentModule ());
-		if (!$this->ma_xml->store_file ()){
-			$this->ErrorList[] = $this->error->get_error_message();
-			$this->log->write($this->error->get_error(true, true));
-			$this->error->pop_parent_source_line();
-			return false;
-		}
-		$this->error->pop_parent_source_line();
-
-		$this->parameters['file_name'] = $this->ma_xml->get_file_name ();
-
-		if ($this->parameters['cli_flag']){
-			$this->delegate_work_to_cli ();
-		}
-		else{
-		//	if (!$this->change_attribute_content())
-		//	{
-		//		return false;
-		//	}
-		}
-
-
-		//$this->setMetaData ('current_step', $this->metaData ('current_step') - 1);
-
-		return true;
+	protected function set_var_parameters_section_identifier (){
+		$this->parameters['section_identifier'] = eZSection::fetch($this->parameters['section_id'])->attribute('identifier');
 	}
 
 	protected function delegate_work_to_cli (){
@@ -140,7 +144,8 @@ class Attribute_content extends MAWizardBase{
 
 	protected function change_attribute_content (){
 		$this->error->add_parent_source_line(__METHOD__);
-		$this->start_TS = microtime_float();
+		$this->start_TS = $this->get_microtime_float();
+		//set_time_limit (120);
 
 		foreach ($this->parameters['parents_nodes_ids'] as $_key => $_node_id){
 			$this->ma_nodes_list[$_key] = new MA_Content_Object_Tree_Nodes_List (
@@ -162,7 +167,7 @@ class Attribute_content extends MAWizardBase{
 				$this->ma_nodes_list[$_key]->change_nodes_tree_attribute_content ();
 				$this->parameters['cron']['subtrees'][$_node_id] = $this->ma_nodes_list[$_key]->get_change_result ();
 			}
-			while ($this->parameters['cron']['subtrees'][$_node_id]['end_flag']);
+			while (!$this->parameters['cron']['subtrees'][$_node_id]['end_flag']);
 
 			// now a small scam
 
@@ -170,8 +175,12 @@ class Attribute_content extends MAWizardBase{
 		}
 		$this->error->pop_parent_source_line ();
 
-		$this->end_TS = microtime_float();
+		$this->end_TS = $this->get_microtime_float();
 		return true;
+	}
+
+	protected function get_microtime_float (){
+		return microtime( true );
 	}
 
 }
