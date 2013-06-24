@@ -7,10 +7,11 @@ class MA_Result extends MAWizardBase{
 	protected $storage_path;
 
 
+
 	function __construct ($_tpl, $_params, $_storageName){
 		parent::__construct ($_tpl, $_params, $_storageName);
 
-		$this->tpl_name = 'result';
+		$this->tpl_name = 'attribute_content/result';
 
 		echo __METHOD__;
 	}
@@ -26,20 +27,8 @@ class MA_Result extends MAWizardBase{
 		return true;
 	}
 
-	protected function delegate_work_to_cron (){
-		echo '<br />';
-		echo __METHOD__;
-	}
-	protected function change_attribute_content_now (){
-		echo '<br />';
-		echo __METHOD__;
-		die ();
-
-
-		//return eZModule::HOOK_STATUS_CANCEL_RUN;
-	}
 	function process (){
-		if ($this->parameters['step_by_step_flag']){
+		if ($this->parameters['cli_flag']){
 			$this->delegate_work_to_cron ();
 		}
 		else{
@@ -53,5 +42,17 @@ class MA_Result extends MAWizardBase{
 		$this->set_view ();
 		return $this->get_view ();
 	}
+	protected function delegate_work_to_cron (){
+		echo '<br />';
+		echo __METHOD__;
+	}
+	protected function change_attribute_content_now (){
+
+
+
+		//return eZModule::HOOK_STATUS_CANCEL_RUN;
+	}
+
+
 
 }

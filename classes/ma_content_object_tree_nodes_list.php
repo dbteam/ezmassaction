@@ -41,6 +41,7 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 	protected $errors_list;
 	protected $has_error;
 	protected $cron_flag;
+	protected $log;
 
 	protected $error;
 
@@ -51,6 +52,7 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 		$this->has_error = false;
 		$this->cron_flag = false;
 		$this->error = MA_Error::get_instance ();
+		$this->log = MA_Log::get_instance();
 
 		$this->set_parent_node ($_parent_node);
 		$this->set_section ($_section);
@@ -171,7 +173,7 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 		//$this->set_limit ($_limit);
 
 
-		if ($this->has_error){
+		if ($this->error->has_error()){
 
 			return false;
 		}
@@ -246,12 +248,26 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 		$this->result = array ();
 		$this->result['limit'] = $this->limit;
 		$this->result['parent_node_id'] = $this->parent_node_id;
-		$this->result['counter'] = 0;
+		$this->result['nodes']['counter'] = 0;
+		$this->result['objects']['langs']['counter'] = 0;
+
+		/**
+		 * It shouldn't be used, it dosen't show how many nodes were changed, it show only how many nodes are those class.
+		 */
 		$this->result['count'] = $this->nodes_tree_list_count;
 
 		if ($this->error->has_error()){
 			return false;
 		}
+		return true;
+	}
+
+	public function change_nodes_tree_attribute_content (){
+		$this->fetch_nodes_tree_list ();
+		$this->change_nodes_tree_attribute_content_ ();
+		$this->set_to_next_use ();
+		$this->set_change_result ();
+
 		return true;
 	}
 	protected function set_change_result (){
@@ -267,27 +283,12 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 	public function get_change_result (){
 		return $this->result;
 	}
-	public function change_nodes_tree_attribute_content (){
-		$this->fetch_nodes_tree_list ();
-		$this->change_nodes_tree_attribute_content_ ();
-		$this->set_to_next_use ();
-		$this->set_change_result ();
-
-		return true;
-	}
-	protected function change_nodes_tree_content_now (){
-
-	}
-	protected function get_changed_nodes_list (){
-		return $this->nodes_tree_list_changed;
-	}
-
 	protected function change_nodes_tree_attribute_content_ ($_transaction_flag = false){
 		/*
 		$knodek = eZContentObjectTreeNode::fetch(11);
 		$knodek->store()
 		$kobject = $knodek->object();
-		$kobject->store()
+		$kobject->store();
 		$kobject->expireAllViewCache();
 
 		$kdata_map = $kobject->fetchDataMap();
@@ -305,14 +306,24 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 			foreach ($this->languages_codes as $_code){
 				if (in_array ($_code, $_avalaible_languages)){
 					$_datamap = $_object->fetchDataMap (false, $_code);
+					//$this->result['objects']['langs']['list'][$_object->attribute ('id')]['atttribute']['content']['previous']
+					//	= $_datamap[$this->attribute_identifier]->content();
+					$this->log->write (
+						'Node id: '. $_node->attribute ('node_id'). " ". 'Object id: '. $_node->attribute ('contentobject_id'). " ". 'Language: '. $_code. "\n".
+						'Content previous: '. $_datamap[$this->attribute_identifier]->content(). "\n"
+					);
+
 					$_datamap[$this->attribute_identifier]->setContent ($this->attribute_content);
 
 					$_datamap[$this->attribute_identifier]->store ();
+
+
+					$this->result['objects']['langs']['counter']++;
 				}
 			}
 			//$_node->store();
 			$this->nodes_tree_list_changed[] = $_node->attribute ('node_id');
-			$this->result['counter']++;
+			$this->result['nodes']['counter'] = $_key;
 
 			$_object->expireAllViewCache ();
 
@@ -411,6 +422,12 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 		);
 	}
 
+	protected function change_nodes_tree_content_now (){
+
+	}
+	protected function get_changed_nodes_list (){
+		return $this->nodes_tree_list_changed;
+	}
 
 	protected function add_error ($_message){
 		$this->errors_list[] = $_message;

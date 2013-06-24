@@ -187,7 +187,7 @@
 							{attribute_edit_gui attribute=$node__.data_map[$persistent_variable.parameters.attribute_identifier]}
 						</div>
 						<div>
-							<label for="StepByStep"></label><input name="StepByStep" type="checkbox" id="StepByStep" value="1" />
+							<label for="StepByStep">Delegate work to Cron? </label><input name="StepByStep" type="checkbox" id="StepByStep" value="1" />
 						</div>
 						{else}
 							<div class="messages">

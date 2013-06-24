@@ -16,7 +16,7 @@ class MA_XML_File {
 	protected $error;
 
 
-	public function __construct ($_data_arr = '', $_path = '', $_file_name = ''){
+	public function __construct ($_data_arr = null, $_path = '', $_file_name = ''){
 		$this->sxml_flag = false;
 		$this->xml_str_hun_rle = false;
 		$this->file_ext = '.xml';
@@ -204,7 +204,7 @@ class MA_XML_File {
 	public function store_file (){
 		if (!$this->xml_str_hun_rle){
 			if (!$this->data_arr){
-				$this->error->set_error('No data to store in a file.', __METHOD__, __LINE__, MA_Error::WARNING);
+				$this->error->set_error('No data to store in the file.', __METHOD__, __LINE__, MA_Error::WARNING);
 				return false;
 			}
 			$this->create_sxml($this->data_arr, $this->sxml);
@@ -214,7 +214,7 @@ class MA_XML_File {
 		$counter = 2;
 		while (file_exists ($this->file_full_path)) {
 
-			$this->set_file_name ($this->file_name. '_'. $counter);
+			$this->set_file_name ($this->file_original_name. '_'. $counter);
 
 			$this->set_file_full_path ();
 
@@ -261,7 +261,7 @@ class MA_XML_File {
 		$file_handler = fopen ($this->file_full_path, 'wt');//xt wt
 
 		if (!$file_handler){
-			$this->error->set_error('File exist this method cannot rewrite the file. Path: '. $this->file_full_path, __METHOD__, __LINE__,
+			$this->error->set_error('File exist, cannot rewrite the file. Path: '. $this->file_full_path, __METHOD__, __LINE__,
 				MA_Error::ERROR);
 			return false;
 		}
@@ -306,7 +306,7 @@ class MA_XML_File {
 	}
 
 	public function get_error (){
-		return $this->errors[0];
+		return 'xxxx';
 	}
 
 }

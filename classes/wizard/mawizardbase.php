@@ -5,6 +5,9 @@ class MAWizardBase extends eZWizardBase{
 	//protected $session;
 	const FIRST_STEP = 0;
 
+	protected $log;
+	protected $error;
+
 	protected $parameters;
 	protected $user_parameters;
 	protected $params;
@@ -21,6 +24,10 @@ class MAWizardBase extends eZWizardBase{
 		$this->WizardURL = $this->view_uri;
 		$this->tpl_name = 'attribute_content';
 		$this->eZWizardBase( $_tpl, $_module, $_storageName );
+
+		$this->error = MA_Error::get_instance();
+		$this->log = MA_Log::get_instance();
+		$this->log->set_file_name($this->Module->currentModule ());
 
 		$this->params = $_params;
 

@@ -47,7 +47,7 @@ class MA_Error {
 		$this->path = array();
 	}
 
-	public function set_error ($messagee = '', $source = '', $line = null, MA_Error $type = '', $ezdebug_fg = true){
+	public function set_error ($messagee = '', $source = '', $line = null, MA_Error $type = null, $ezdebug_fg = true){
 		$this->error = array ();
 
 		$this->error['message'] = $messagee;
