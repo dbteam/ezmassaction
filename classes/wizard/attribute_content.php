@@ -179,8 +179,8 @@ class Attribute_content extends MAWizardBase{
 				return false;
 			}
 
-			$this->ma_nodes_list[$_key]->set_to_change_nodes_tree_attribute_content (
-				$this->parameters['attribute_identifier'], $this->parameters['attribute_content'], $this->parameters['attribute_post_key'], false
+			$this->ma_nodes_list[$_key]->set_to_change_nodes_tree_attribute_content(
+				$this->parameters['attribute_identifier'], $this->parameters['attribute_content'], false
 			);
 
 			do{

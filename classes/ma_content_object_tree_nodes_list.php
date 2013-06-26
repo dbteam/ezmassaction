@@ -166,7 +166,7 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 	}
 
 
-	public function set_to_change_nodes_tree_attribute_content ($attribute_identifier, $attribute_content, $attribute_post_key,
+	public function set_to_change_nodes_tree_attribute_content ($attribute_identifier, $attribute_content,
 		$cron_flag = false, $offset = null, $limit = null
 	){
 		$this->set_attribute_identifier ($attribute_identifier);
@@ -328,7 +328,9 @@ class MA_Content_Object_Tree_Nodes_List extends eZContentObjectTreeNode {
 
 					//echo get_class($content_attribute);
 					//die();
-					$content_attribute->fetchInput ($this->http, $this->attribute_base);
+					//$content_attribute->fetchInput ($this->http, $this->attribute_base);
+					$content_attribute->setContent ($this->attribute_content);
+					$content_attribute->fromString ($this->attribute_content);
 					//$content_attribute->setHTTPValue ($this->attribute_content);
 					//$content_attribute->setContent ($this->attribute_content);
 					/*
