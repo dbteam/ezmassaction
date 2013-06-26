@@ -1,5 +1,5 @@
 
-{if $navigation_part.identifier|compare(ezini('Topmenu_massaction', 'NavigationPartIdentifier', 'menu.ini'))}
+{*if $navigation_part.identifier|compare(ezini('Topmenu_massaction', 'NavigationPartIdentifier', 'menu.ini'))*}
 	<script type="text/javascript">
 		menuArray['MainMenu'] = {ldelim}{rdelim};
 		menuArray['MainMenu']['depth'] = 0;
@@ -18,4 +18,4 @@
 		{'Mass Action'|i18n( 'extension/ezmassaction/content/leftmenu/popup' )}
 	</a>
 
-{/if}
+{* /if*}

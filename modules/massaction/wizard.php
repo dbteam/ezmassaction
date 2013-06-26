@@ -78,8 +78,9 @@ else{
 
 	$Result =  $step->run();
 
-	var_dump($step->get_parameters ());
-	var_dump($step->MetaData);
+	$parameters = $step->get_parameters ();
+	var_dump($parameters);//['subtrees']
+	//var_dump($step->MetaData);
 
 	//echo '<br /> Errors: ';
 	//var_dump($step->ErrorList);

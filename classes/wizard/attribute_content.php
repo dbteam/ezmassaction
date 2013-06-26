@@ -24,6 +24,7 @@ class Attribute_content extends MAWizardBase{
 
 	protected function set_parameters_attribute_content (){
 		$this->parameters['attribute_content'] = $_POST[$this->content_object_attribute_post_key];
+		$this->parameters['attribute_post_key'] = $this->content_object_attribute_post_key;
 	}
 	protected function set_parameters_cli_flag (){
 		unset($this->parameters['step_by_step']);
@@ -147,9 +148,28 @@ class Attribute_content extends MAWizardBase{
 		$this->start_TS = $this->get_microtime_float();
 		//set_time_limit (120);
 
+		$this->parameters['cron']['subtrees'] = array();
+		$this->parameters['cron']['objects']['languages']['count'] = 0;
+		$this->parameters['cron']['nodes']['count'] = 0;
+
+		$this->log->write (
+			"\n".
+			'Start '. __METHOD__. "\n".
+			'Section identifier: '. $this->parameters['section_identifier']. "\n".
+			'Class identifier: '. $this->parameters['class_identifier']. "\n".
+			'Attribute identifier: '. $this->parameters['attribute_identifier']. "\n".
+			'New attribute content: '. $this->parameters['attribute_content']. "\n"
+		);
+
+		$this->HTTP->setPostVariable($this->parameters['attribute_post_key'], $this->parameters['attribute_content']);
+
 		foreach ($this->parameters['parents_nodes_ids'] as $_key => $_node_id){
-			$this->ma_nodes_list[$_key] = new MA_Content_Object_Tree_Nodes_List (
-				$_node_id, $this->parameters['section_identifier'], $this->parameters['class_identifier'], $this->parameters['locales_codes']
+			$this->log->write(
+				"\n".
+				'Parent node id: '. $_node_id. "\n"
+			);
+			$this->ma_nodes_list[$_key] = new MA_Content_Object_Tree_Nodes_List(
+				$_node_id, $this->parameters['section_identifier'], $this->parameters['class_identifier'], $this->parameters['locales_codes'], 5
 			);
 
 			if (!$this->ma_nodes_list[$_key]){
@@ -160,12 +180,22 @@ class Attribute_content extends MAWizardBase{
 			}
 
 			$this->ma_nodes_list[$_key]->set_to_change_nodes_tree_attribute_content (
-				$this->parameters['attribute_identifier'], $this->parameters['attribute_content'], false
+				$this->parameters['attribute_identifier'], $this->parameters['attribute_content'], $this->parameters['attribute_post_key'], false
 			);
 
 			do{
-				$this->ma_nodes_list[$_key]->change_nodes_tree_attribute_content ();
+				if (!$this->ma_nodes_list[$_key]->change_nodes_tree_attribute_content ()){
+					$this->ErrorList[] = $this->error->get_error_message();
+					$this->log->write($this->error->get_error(true, true));
+					$this->error->pop_parent_source_line();
+					$this->parameters['cron']['subtrees'][$_node_id] = $this->ma_nodes_list[$_key]->get_change_result ();
+					return false;
+				}
 				$this->parameters['cron']['subtrees'][$_node_id] = $this->ma_nodes_list[$_key]->get_change_result ();
+				$this->parameters['cron']['objects']['languages']['count']
+					+= $this->parameters['cron']['subtrees'][$_node_id]['objects']['langs']['counter'];
+				$this->parameters['cron']['nodes']['count'] += $this->parameters['cron']['subtrees'][$_node_id]['nodes']['counter'];
+				break;
 			}
 			while (!$this->parameters['cron']['subtrees'][$_node_id]['end_flag']);
 
@@ -176,6 +206,14 @@ class Attribute_content extends MAWizardBase{
 		$this->error->pop_parent_source_line ();
 
 		$this->end_TS = $this->get_microtime_float();
+		$this->log->write(
+			"\n".
+			'  Works end '. "\n".
+			'  Works time: '. ($this->end_TS - $this->start_TS). ' secs'. "\n".
+			'  Changed nodes count: '. $this->parameters['cron']['nodes']['count']. "\n".
+			'  Changed language objects count: '. $this->parameters['cron']['objects']['languages']['count']. "\n".
+			'  Was Run from web browser'. "\n"
+		);
 		return true;
 	}
 
