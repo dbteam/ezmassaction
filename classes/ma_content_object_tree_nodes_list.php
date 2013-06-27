@@ -532,17 +532,21 @@ class MA_Content_Object_Tree_Nodes_List {
 		$this->children['count'] = 0;
 		$this->children['counter'] = 0;
 		$this->depth_counter = 0;
+
+		var_dump($this->name_attribute_identifier);
+		die();
 	}
 	protected function set_create_method_type ($type = null){
 		$this->create_method_type = ($type? (int) $type: self::CR_METHOD_LINE_X);
 	}
 
 	protected function set_name_attribute_identifier (){
-		$contentobject_name_pattern = $this->class->attribute ('contentobject_name');
+		$contentobject_name_pattern = $this->class->ContentObjectName;
 
 		//preg_match('/^<(.*)>.*/', $contentobject_name_pattern, $this->containers_name_attribute_identifier);
 		//$this->containers_name_attribute_identifier = $this->containers_name_attribute_identifier[1];
 		$pos1 = strpos($contentobject_name_pattern, '<');
+		$pos1++;
 		$pos2 = strpos($contentobject_name_pattern, '>');
 		$this->name_attribute_identifier = substr ($contentobject_name_pattern, $pos1, $pos2 - $pos1);
 
@@ -566,7 +570,7 @@ class MA_Content_Object_Tree_Nodes_List {
 		$this->parameters['class_identifier'] = $this->class_identifier;
 		$this->parameters['creator_id'] = eZUser::currentUserID();
 		$this->parameters['attributes'] = array(
-			$this->name_attribute_identifier = $this->base_name
+			$this->name_attribute_identifier => $this->base_name
 		);
 	}
 
@@ -590,20 +594,25 @@ class MA_Content_Object_Tree_Nodes_List {
 		}
 	}
 	protected function set_containers_name_attribute_identifier (){
-		$contentobject_name_pattern = $this->containers_class->attribute ('contentobject_name');
-
+		$contentobject_name_pattern = $this->containers_class->ContentObjectName;
+		var_dump(__LINE__);
+		var_dump($contentobject_name_pattern);
 		//preg_match('/^<(.*)>.*/', $contentobject_name_pattern, $this->containers_name_attribute_identifier);
 		//$this->containers_name_attribute_identifier = $this->containers_name_attribute_identifier[1];
 		$pos1 = strpos($contentobject_name_pattern, '<');
+		$pos1++;
 		$pos2 = strpos($contentobject_name_pattern, '>');
 		$this->containers_name_attribute_identifier = substr ($contentobject_name_pattern, $pos1, $pos2 - $pos1);
+		var_dump($this->containers_class);
 
 		$pos1 = 0;
 		$pos2 = false;
-		$pos2 = strpos($this->containers_name_attribute_identifier, '\|');
+		$pos2 = strpos($this->containers_name_attribute_identifier, '|');
 		if ($pos2 > 0){
 			$this->containers_name_attribute_identifier = substr($this->containers_name_attribute_identifier, $pos1, $pos2 - $pos1);
 		}
+		var_dump($this->containers_name_attribute_identifier);
+
 	}
 	protected function set_containers_base_name ($base_name = null){
 		$base_name = trim($base_name);
@@ -614,7 +623,7 @@ class MA_Content_Object_Tree_Nodes_List {
 		$this->containers_parameters['class_identifier'] = $this->containers_class_identifier;
 		$this->containers_parameters['creator_id'] = eZUser::currentUserID();
 		$this->containers_parameters['attributes'] = array(
-			$this->containers_name_attribute_identifier = $this->containers_base_name
+			$this->containers_name_attribute_identifier => $this->containers_base_name
 		);
 	}
 
