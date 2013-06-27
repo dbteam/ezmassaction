@@ -179,9 +179,15 @@ class Attribute_content extends MAWizardBase{
 				return false;
 			}
 
-			$this->ma_nodes_list[$_key]->set_to_change_nodes_tree_attribute_content(
-				$this->parameters['attribute_identifier'], $this->parameters['attribute_content'], false
-			);
+			if (
+				!$this->ma_nodes_list[$_key]->set_to_change_nodes_tree_attribute_content(
+					$this->parameters['attribute_identifier'], $this->parameters['attribute_content'], false, null, null
+				)
+			){
+				$this->ErrorList[] = $this->error->get_error_message(true);
+				$this->error->pop_parent_source_line();
+				return false;
+			}
 
 			do{
 				if (!$this->ma_nodes_list[$_key]->change_nodes_tree_attribute_content ()){
@@ -198,6 +204,22 @@ class Attribute_content extends MAWizardBase{
 				break;
 			}
 			while (!$this->parameters['cron']['subtrees'][$_node_id]['end_flag']);
+
+			//$obb = new MA_Content_Object_Tree_Nodes_List();
+			//$obb->preset_create_tree()
+
+			if (!$this->ma_nodes_list[$_key]->preset_create_tree (MA_Content_Object_Tree_Nodes_List::CR_METHOD_LINE_X, 2, null, 'folder')){
+				$this->ErrorList[] = $this->error->get_error_message();
+				$this->log->write($this->error->get_error(true, true));
+				$this->error->pop_parent_source_line();
+				return false;
+			}
+			if (!$this->ma_nodes_list[$_key]->create_tree()){
+				$this->ErrorList[] = $this->error->get_error_message();
+				$this->log->write($this->error->get_error(true, true));
+				$this->error->pop_parent_source_line();
+				return false;
+			}
 
 			// now a small scam
 
