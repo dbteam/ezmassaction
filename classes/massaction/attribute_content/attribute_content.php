@@ -14,9 +14,7 @@ class Attribute_content extends MAWizardBase{
 
 	function __construct ($_tpl, $_params, $_storageName){
 		parent::__construct ($_tpl, $_params, $_storageName);
-
-		$this->storage_path = str_replace ('\\', '/', eZSys::rootDir () ).'/'. eZSys::storageDirectory (). '/'.
-			$this->Module->currentModule(). '/';
+		$this->storage_path = eZSys::rootDir ().'/'. eZSys::storageDirectory (). '/'. $this->Module->currentModule(). '/';
 		$this->ma_nodes_list = array();
 
 		echo __METHOD__;
@@ -33,34 +31,27 @@ class Attribute_content extends MAWizardBase{
 			$this->parameters['cli_flag'] = true;
 		}
 	}
-	function postCheck (){
+	public function postCheck (){
 		if (!$this->Module->isCurrentAction ('change_attribute_content')){
 			$this->prepare_to_repeat_step ();
-
 			return false;
 		}
-
 		$this->set_var_parameters_attr_identifier ();
 		$this->set_var_parameters_class_identifier ();
 		$this->set_var_parameters_section_identifier();
-
 		if (!$this->search_attribute_in_post ()){
 			$this->prepare_to_repeat_step();
-
 			return false;
 		}
 		$this->set_parameters_attribute_content ();
-
 		$this->set_parameters_cli_flag ();
 
-
 		$this->error->add_parent_source_line(__METHOD__);
-
 		$this->ma_xml = new MA_XML_File ($this->parameters, $this->storage_path, $this->Module->currentModule ());
+
 		if (!$this->ma_xml->store_file ()){
 			$this->ErrorList[] = $this->error->get_error_message();
 			$this->log->write($this->error->get_error(true, true));
-			$this->error->pop_parent_source_line();
 			return false;
 		}
 		$this->error->pop_parent_source_line();
@@ -77,9 +68,7 @@ class Attribute_content extends MAWizardBase{
 			}
 		}
 
-
 		//$this->setMetaData ('current_step', $this->metaData ('current_step') - 1);
-
 		return true;
 	}
 	protected function search_attribute_in_post (){
@@ -153,7 +142,6 @@ class Attribute_content extends MAWizardBase{
 		$this->parameters['cron']['nodes']['count'] = 0;
 
 		$this->log->write (
-			"\n".
 			'Start '. __METHOD__. "\n".
 			'Section identifier: '. $this->parameters['section_identifier']. "\n".
 			'Class identifier: '. $this->parameters['class_identifier']. "\n".
@@ -174,7 +162,11 @@ class Attribute_content extends MAWizardBase{
 			if (!$this->ma_nodes_list[$_key]){
 				$this->ErrorList[] = $this->error->get_error_message();
 				$this->log->write($this->error->get_error(true, true));
-				$this->error->pop_parent_source_line();
+				return false;
+			}
+			if ($this->error->has_error()){
+				$this->ErrorList[] = $this->error->get_error_message();
+				$this->log->write($this->error->get_error(true, true));
 				return false;
 			}
 
@@ -185,14 +177,12 @@ class Attribute_content extends MAWizardBase{
 			){
 				$this->ErrorList[] = $this->error->get_error_message(true);
 				$this->log->write($this->error->get_error(true, true));
-				$this->error->pop_parent_source_line();
 				return false;
 			}
 			do{
 				if (!$this->ma_nodes_list[$_key]->change_nodes_tree_attribute_content ()){
 					$this->ErrorList[] = $this->error->get_error_message();
 					$this->log->write($this->error->get_error(true, true));
-					$this->error->pop_parent_source_line();
 					$this->parameters['cron']['subtrees'][$_node_id] = $this->ma_nodes_list[$_key]->get_change_result ();
 					return false;
 				}
@@ -212,18 +202,20 @@ class Attribute_content extends MAWizardBase{
 			//$obb->preset_create_tree();
 			//$this->log->write('class: '. get_class($obb));
 
+			/**
+			 * @ToDo move below code to maobjects module
+			 *
 			if (!$this->ma_nodes_list[$_key]->preset_create_tree (MA_Content_Object_Tree_Nodes_List::CR_METHOD_LINE_X, 2, 2, null, 'folder')){
 				$this->ErrorList[] = $this->error->get_error_message();
 				$this->log->write($this->error->get_error(true, true));
-				$this->error->pop_parent_source_line();
 				return false;
 			}
 			if (!$this->ma_nodes_list[$_key]->create_tree()){
 				$this->ErrorList[] = $this->error->get_error_message();
 				$this->log->write($this->error->get_error(true, true));
-				$this->error->pop_parent_source_line();
 				return false;
 			}
+			*/
 		}
 		$this->error->pop_parent_source_line ();
 

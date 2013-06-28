@@ -87,7 +87,7 @@ class MainArticlesFolder {
 		$this->show_SQL_flag = $this->options['sql'] ? true : false;
 		$this->db->setIsSQLOutputEnabled ($this->show_SQL_flag);
 
-		$this->main_article_folder_node_id = ($this->options['parent-node-id']? (int) $this->options['parent-node-id']: 269584);
+		$this->main_article_folder_node_id = ($this->options['parent-node-id']? (int) $this->options['parent-node-id']: 222);
 
 		$this->objects_class_identifier = ($this->options['objects-class-identifier']?
 			$this->options['objects-class-identifier']: 'article_simple');

@@ -16,5 +16,6 @@
 [ModuleSettings]
 ExtensionRepositories[]=ezmassaction
 ModuleList[]=massaction
+# ModuleList[]=maobjects - disabled
 
 */ ?>

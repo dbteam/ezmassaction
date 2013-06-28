@@ -1,12 +1,12 @@
 <?php
-
 $module = $Params['Module'];
-
-$http = eZHTTPTool::instance();
 $tpl = eZTemplate::factory();
-
-//$template_name = 'attribute_content';
-//$persistent_variable = array ();
+//$http = eZHTTPTool::instance();
+$userParameters = '';
+if ( isset( $Params['UserParameters'] ) )
+{
+	$userParameters = $Params['UserParameters'];
+}
 
 $stepArray = array();
 /*
@@ -19,7 +19,6 @@ $stepArray[] = array(
 	'file' => 'attributes_list.php',
 	'class' => 'Attributes_list'
 );
-
 $stepArray[] = array(
 	'file' => 'attribute.php',
 	'class' => 'Attribute'
@@ -32,12 +31,11 @@ $stepArray[] = array(
 	'file' => 'ma_result.php',
 	'class' => 'MA_Result'
 );
-
-$structure = '/classes/'. $module->currentView (). '/';
-/**
- * @TODO preg_replace ('/\/modules\//', $structure, $module->Path, 1);
- */
-$path = preg_replace ('/modules.*$/', '', $module->Path, 1). 'classes/wizard/';
+//path = 'extension/ezmassaction/classes/'. $module->currentView (). '/';
+//$path = preg_replace ('/modules\/?/', '', $module->Path, 1). 'classes/'. $module->currentView ().'/';
+$count = 1;
+$path = str_replace('modules', '', $module->Path, $count). 'classes/'. $module->currentModule ().'/'. $module->currentView (). '/';
+$path = str_replace("//", '/', $path);
 
 if ($module->isCurrentAction ('restart_process')){
 	$step = eZWizardBaseClassLoader::createClass ( $tpl, $Params, $stepArray,  $path, $module->currentModule (),
@@ -47,7 +45,6 @@ if ($module->isCurrentAction ('restart_process')){
 		)
 	);
 	$step->cleanUp ();
-
 	unset ($step);
 
 	$step2 = eZWizardBaseClassLoader::createClass ( $tpl, $Params, $stepArray,  $path, $module->currentModule (),
@@ -56,11 +53,6 @@ if ($module->isCurrentAction ('restart_process')){
 			'current_stage' => eZWizardBase::STAGE_POST
 		)
 	);
-
-	echo '<br /> step restart metadata';
-	//var_dump($step2->parameters);
-	var_dump($step2->MetaData);
-
 	return $step2->run();
 }
 else{
@@ -72,13 +64,14 @@ else{
 		)
 	);
 
-	echo '<br /> else step metadata';
+	//echo '<br /> else step metadata';
 	//var_dump($step->MetaData);
 	//$module->redirectURL ($module->currentModule (). '/'. $module->Functions [$Params ['FunctionName'] ]['custom_view_parameters']['start']['url_alias']);
 
 	$Result =  $step->run();
 
 	$parameters = $step->get_parameters ();
+	echo '<br />parameters: <br />';
 	var_dump($parameters);//['subtrees']
 	//var_dump($step->MetaData);
 
@@ -88,5 +81,21 @@ else{
 	return $Result;
 }
 
+if (strpos (trim ($module->Functions['index']['custom_view_parameters']['index']['url_alias'], "/"), "/")){
+	$url_alias_arr = explode("/", $module->Functions['index']['custom_view_parameters']['index']['url_alias']);
+	if (isset ($url_alias_arr[1])){
+		$module_dir_name = $url_alias_arr[0];
+		$view_alias = $url_alias_arr[1];
+	}
+	else{
+		//it shouldnt happen
+		$module_dir_name = $module->currentModule ();
+		$view_alias = $url_alias_arr[0];
+	}
+}
+else{
+	$module_dir_name = $module->currentModule ();
+	$view_alias = $module->Functions['index']['custom_view_parameters']['index']['url_alias'];
+}
 
-
+return $module->redirectionURI($module_dir_name, $view_alias, array(), null, $userParameters);

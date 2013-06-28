@@ -6,7 +6,7 @@ class MA_XML_File {
 	protected $xml_str_hun_rle;
 	protected $storage_path;
 	protected $data_arr;
-	protected $errors;
+	//protected $errors;
 	protected $file_content;
 	protected $file_name;
 	protected $file_original_name;
@@ -20,11 +20,14 @@ class MA_XML_File {
 		$this->sxml_flag = false;
 		$this->xml_str_hun_rle = false;
 		$this->file_ext = '.xml';
-		$this->errors = array ();
 		$this->error = MA_Error::get_instance ();
 
+		$this->error->set_error('zzz', __METHOD__, __LINE__, MA_Error::ERROR);
+		$this->error->get_error_message(true);
 
 		if ($this->set_data_arr ($_data_arr)){
+			$this->error->set_error('wrong', __METHOD__, __LINE__, MA_Error::ERROR);
+			$this->error->get_error_message(true);
 			$this->create_sxml ($this->data_arr, $this->sxml);
 
 			$this->make_xml_human_redable ();
@@ -37,6 +40,9 @@ class MA_XML_File {
 			$this->set_file_full_path ();
 		}
 		elseif ($_path){
+			$this->error->set_error('good', __METHOD__, __LINE__, MA_Error::ERROR);
+			$this->error->get_error_message(true);
+
 			if (!$this->set_storage_path ($_path)){
 				return false;
 			}
@@ -100,6 +106,7 @@ class MA_XML_File {
 		$this->storage_path = str_replace ('\\', '/', $_path);
 
 		$this->storage_path = rtrim ($this->storage_path, ' /'). '/';
+		$this->storage_path = str_replace("//", '/', $this->storage_path);
 
 		if (!is_dir (rtrim ($this->storage_path, '/') ) ){
 			if (!eZDir::mkdir ($this->storage_path, 0776, true) ){
@@ -277,14 +284,12 @@ class MA_XML_File {
 		$this->set_file_full_path ();
 
 		if (!file_exists ($this->file_full_path) ){
-			//$this->errors[] = 'File doesn\'t exist in path: '. $this->file_full_path;
 			$this->error->set_error('File doesn\'t exist in path: '. $this->file_full_path, __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
 
 		$handle = fopen ($this->file_full_path, "rt");
 		if (!$handle){
-			//$this->errors[] = 'No permission to read file: '. $this->file_full_path;
 			$this->error->set_error('No permission to read file: '. $this->file_full_path, __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}

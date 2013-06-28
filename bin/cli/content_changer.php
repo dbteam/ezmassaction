@@ -24,18 +24,15 @@ $script = eZScript::instance(
 );
 $my_ch = new Content_Changer($script);
 if (!$my_ch){
-
+	$script->shutdown (1);
 	return false;
 }
 
 $my_ch->process();
 
 
-
 unset ($my_ch);
-
 $script->shutdown (0);
-
 
 
 class Content_Changer{
@@ -79,6 +76,7 @@ class Content_Changer{
 
 		$this->script = $_script;
 		$this->script->startup();
+		//CLI Options
 		$this->set_options();
 		$this->script->initialize();
 		$this->set_scheduled_script();
@@ -86,19 +84,43 @@ class Content_Changer{
 		$this->db = eZDB::instance ();
 		$this->set_show_SQL();
 
+		$this->set_user_admin();
+		$this->set_xml_data_file_name();
+		$this->set_folder_container();
+
+		$this->cli->output('file name: '. $this->options['filename-part']);
+
+		//$this->script->shutdown(0);
+
+		$this->set_ma_xml();
+		$this->set_xml_data_arr();
+	}
+
+
+	protected function set_show_SQL (){
+		$this->show_SQL_flag = $this->options['sql'] ? true : false;
+		$this->db->setIsSQLOutputEnabled ($this->show_SQL_flag);
+	}
+	protected function set_options (){
+		$this->options = $this->script->getOptions(
+			"[parent-catalog:][filename-part:][user-admin-name:][scriptid:][sql]",
+			"",
+			array(
+				'parent-catalog' => 'Catalog contains the xml file.',
+				'filename-part' => 'XML file name with serialized data (without extension, without module name and file extension)',
+				'user-admin-name' => 'Alternative login for the user to perform operation as, if no write script use default name: admin',
+				'scriptid' => 'Used by the Script Monitor extension, do not use manually',
+				'sql' => 'If write script display sql queries'
+			)
+		);
+	}
+	protected function set_user_admin (){
 		$this->user_admin_name = ($this->options['user-admin-name']? $this->options['user-admin-name']: 'admin');
 		$this->user_admin = eZUser::fetchByName( $this->user_admin_name );
 		if ($this->user_admin){
 			eZUser::setCurrentlyLoggedInUser ($this->user_admin, $this->user_admin->attribute ('id'));
 		}
-
-		if (!$this->set_ma_xml())
-			return false;
-		if (!$this->set_xml_data_arr())
-			return false;
-
 	}
-
 	protected function set_scheduled_script (){
 		$this->scheduled_script = false;
 		if (
@@ -111,41 +133,34 @@ class Content_Changer{
 		}
 	}
 
-	protected function set_show_SQL (){
-		$this->show_SQL_flag = $this->options['sql'] ? true : false;
-		$this->db->setIsSQLOutputEnabled ($this->show_SQL_flag);
-	}
-	protected function set_options (){
-		$this->options = $this->script->getOptions(
-			"[parent-catalog:][filename-part:][user-admin-name:][scriptid:][sql]",
-			"",
-			array(
-				'parent-catalog' => 'Catalog contains the file',
-				'filename-part' => 'XML file name with serialized data (without extension, without module name and file extension)',
-				'user-admin-name' => 'Alternative login for the user to perform operation as, if no write script use default name: admin',
-				'scriptid' => 'Used by the Script Monitor extension, do not use manually',
-				'sql' => 'If write script display sql queries'
-			)
-		);
-	}
-
 	protected function set_xml_data_file_name (){
 		$this->xml_data_file_name = str_replace ('\.xml', '', $this->options['filename-part']);
 		$this->xml_data_file_name = $this->xml_data_file_name? $this->xml_data_file_name: null;
+		if (!$this->xml_data_file_name){
+			$this->error->set_error('XML file name missing.', __METHOD__, __LINE__, MA_Error::ERROR);
+			$this->cli->error ($this->error->get_error ());
+			$this->write_log ($this->error->get_error (true, true));
+			$this->script->shutdown(1);
+			return false;
+		}
+		$this->error->pop_parent_source_line();
+		return true;
 	}
 	protected function set_folder_container (){
-		$this->folder_container = $this->options['parent-folder']? $this->options['parent-folder']: $this->xml_data_file_name;
+		$length = strrpos($this->xml_data_file_name, "_") - 0;
+		$dir_name = substr($this->xml_data_file_name, 0, $length);
+		$this->folder_container = ($this->options['parent-catalog']? $this->options['parent-catalog']: $dir_name);
 	}
 	protected function set_ma_xml (){
 		$this->error->add_parent_source_line(__METHOD__);
-
 		$xml_path = eZSys::rootDir (). '/'. eZSys::storageDirectory (). '/'. $this->folder_container. '/' ;
-		$this->ma_xml_file = new MA_XML_File(null, $xml_path, $this->xml_data_file_name);
+		$this->cli->output('xml path: '. $xml_path);
+
+		$this->ma_xml_file = new MA_XML_File (null, $xml_path, $this->xml_data_file_name);
 		//$this->ma_xml_file->fetch_file()
-		if (!$this->ma_xml_file){
+		if ($this->error->has_error()){
 			$this->cli->error ($this->error->get_error ());
 			$this->write_log ($this->error->get_error (true, true));
-			$this->error->pop_parent_source_line();
 			$this->script->shutdown(1);
 			return false;
 		}
@@ -159,7 +174,6 @@ class Content_Changer{
 		if (!$this->ma_xml_file->fetch_file()){
 			$this->cli->error($this->error->get_error());
 			$this->write_log($this->error->get_error(true, true));
-			$this->error->pop_parent_source_line();
 			$this->script->shutdown(1);
 			return false;
 		}
@@ -168,7 +182,6 @@ class Content_Changer{
 		if (!reset($this->xml_data_arr)){
 			$this->cli->error($this->error->get_error());
 			$this->write_log($this->error->get_error(true, true));
-			$this->error->pop_parent_source_line();
 			$this->script->shutdown(1);
 			return false;
 		}
@@ -213,9 +226,18 @@ class Content_Changer{
 			$this->ma_nodes_list[$_key] = new MA_Content_Object_Tree_Nodes_List (
 				$_node_id, $this->xml_data_arr['section_identifier'], $this->xml_data_arr['class_identifier'], $this->xml_data_arr['locales_codes']
 			);
+			if ($this->error->has_error()){
+				unset ($this->ma_nodes_list[$_key]);
+				$this->error->set_error('Cannot create object.', __METHOD__, __LINE__, MA_Error::ERROR);
+				$this->log->write($this->error->get_error());
+				$this->cli->error($this->error->get_error(true, true));
+				return false;
+			}
 
 			if (!$this->ma_nodes_list[$_key]){
-				$this->error->pop_parent_source_line();
+				$this->error->set_error('Some error', __METHOD__, __LINE__, MA_Error::ERROR);
+				$this->log->write($this->error->get_error());
+				$this->cli->error($this->error->get_error(true, true));
 				return false;
 			}
 
@@ -224,8 +246,11 @@ class Content_Changer{
 				$this->xml_data_arr['cron']['limit']
 			);
 
+			$this->error->add_parent_source_line(__METHOD__);
 			do{
-				$this->ma_nodes_list[$_key]->change_nodes_tree_attribute_content ();
+				if (!$this->ma_nodes_list[$_key]->change_nodes_tree_attribute_content ()){
+					return false;
+				}
 				$this->xml_data_arr['cron']['subtrees'][$_node_id] = $this->ma_nodes_list[$_key]->get_change_result ();
 			}
 			while ($this->xml_data_arr['cron']['subtrees'][$_node_id]['end_flag']);
@@ -260,7 +285,6 @@ class Content_Changer{
 		if (!$this->ma_xml_file->rewrite_file()){
 			$this->cli->error ($this->error->get_error ());
 			$this->write_log ($this->error->get_error (true, true));
-			$this->error->pop_parent_source_line();
 			$this->script->shutdown(1);
 			return false;
 		}

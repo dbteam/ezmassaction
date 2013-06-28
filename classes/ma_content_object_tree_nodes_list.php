@@ -113,7 +113,6 @@ class MA_Content_Object_Tree_Nodes_List {
 			$this->error->set_error('$_parent_node missing.', __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
-
 		if (is_numeric ($_parent_node)){
 			$this->parent_node_id = (int) $_parent_node;
 		}
@@ -130,7 +129,6 @@ class MA_Content_Object_Tree_Nodes_List {
 			//$this->error->set_error('$_section missing. ', __METHOD__, __LINE__, MA_Error::Error);
 			//return false;
 		}
-
 		if (is_numeric ($_section)){
 			$this->section_id = $_section;
 
@@ -146,7 +144,6 @@ class MA_Content_Object_Tree_Nodes_List {
 		else{
 			$this->section_identifier = $_section;
 		}
-
 		return true;
 	}
 	protected function set_class ($_class = null){
@@ -182,12 +179,9 @@ class MA_Content_Object_Tree_Nodes_List {
 		$_depth = (($_depth > 0)? $_depth: 2 );
 		if (!is_numeric ($_depth)){
 			$this->error->set_error('Depth is not a number.', __METHOD__, __LINE__, MA_Error::ERROR);
-
 			return false;
 		}
-
 		$this->depth = $_depth;
-
 		return true;
 	}
 	protected function pre_set_result (){
@@ -200,24 +194,24 @@ class MA_Content_Object_Tree_Nodes_List {
 	public function set_to_change_nodes_tree_attribute_content ($attribute_identifier, $attribute_content,
 		$cron_flag = false, $offset = null, $limit = null
 	){
-		$this->set_attribute_identifier ($attribute_identifier);
+		$this->error->add_parent_source_line(__METHOD__);
+		if (!$this->set_attribute_identifier ($attribute_identifier)){
+			$this->error->pop_parent_source_line();
+			return false;
+		}
 		//$this->set_attribute_id ($attribute_id);
-		$this->set_attribute_content ($attribute_content);
+		if (!$this->set_attribute_content ($attribute_content)){
+			$this->error->pop_parent_source_line();
+			return false;
+		}
 		$this->set_cron ($cron_flag, $offset, $limit);
 
-		$this->attribute_base = 'ContentObjectAttribute';
+		//$this->attribute_base = 'ContentObjectAttribute';
 		//$this->http = eZHTTPTool::instance();
 		//$this->attribute_post_key = $attribute_post_key;
 		//$this->http->setPostVariable($this->attribute_post_key, $this->attribute_content);
 		$this->nodes_tree_list_changed['nodes_ids'] = array();
-
-		/**
-		 * it dosen't show how many nodes were changed, it show only how many nodes are of the class in the tree (fetched nodes in all languages).
-		 */
-		//$this->result['count'] = $this->nodes_tree_list_count;
-		if ($this->error->has_error()){
-			return false;
-		}
+		$this->error->pop_parent_source_line();
 		return true;
 	}
 	protected function set_attribute_identifier ($_attribute_identifier){
@@ -281,32 +275,15 @@ class MA_Content_Object_Tree_Nodes_List {
 	public function change_nodes_tree_attribute_content (){
 		$this->fetch_nodes_tree_list ();
 
+		$this->error->add_parent_source_line(__METHOD__);
 		if (!$this->change_nodes_tree_attribute_content_ ()){
+			$this->error->pop_parent_source_line();
 			return false;
 		}
+		$this->error->pop_parent_source_line();
 		$this->set_to_next_use ();
 		$this->set_change_result ();
 		return true;
-	}
-	protected function set_change_result (){
-		//$this->result['counter'] = count ($this->nodes_tree_list_changed);
-		$this->result['limit'] = $this->limit;
-		$this->result['offset'] = $this->offset;
-		$this->result['parent_node_id'] = $this->parent_node_id;
-		//$this->result['nodes']['counter_fetched'];
-		$this->result['nodes']['counter'] = count ($this->nodes_tree_list_changed['nodes_ids']);
-		//$this->result['nodes']['nodes'] = $this->nodes_tree_list_changed;
-		//$this->result['objects']['langs']['changed']['counter'] = 0;
-
-		if ($this->last_node_to_change->attribute ('node_id') == end ($this->nodes_tree_list_changed['nodes_ids'])){
-			$this->result['end_flag'] = true;
-		}
-		else{
-			$this->result['end_flag'] = false;
-		}
-	}
-	public function get_change_result (){
-		return $this->result;
 	}
 	protected function change_nodes_tree_attribute_content_ ($_transaction_flag = false){
 		/*
@@ -351,7 +328,6 @@ class MA_Content_Object_Tree_Nodes_List {
 					//$this->result['objects']['langs']['list'][$object->attribute ('id')]['atttribute']['content']['previous']
 					//	= $datamap[$this->attribute_identifier]->content();
 					$this->log->write (
-						"\n".
 						'Node id: '. $node->attribute ('node_id'). " ". 'Object id: '. $node->attribute ('contentobject_id'). " ". 'Language: '. $code. "\n".
 						'Content previous: '. $content_attribute->content(). "\n"
 					);
@@ -407,11 +383,11 @@ class MA_Content_Object_Tree_Nodes_List {
 			$_function_parameters = array (
 				'parent_node_id' => $this->parent_node_id,
 				//'sort_by' => array ('path', false()),
-				'sort_by' => array ('published', true),
+				'sort_by' => array ('node_id', true),
 				'class_filter_type' => 'include',
 				'class_filter_array' => array ($this->class_identifier),
 				'as_object' => true,
-				//'ignore_visibility' => false,
+				'ignore_visibility' => false,
 				'depth' => $this->depth,
 				'load_data_map' => true
 			);
@@ -426,11 +402,11 @@ class MA_Content_Object_Tree_Nodes_List {
 				'class_filter_type' => 'include',
 				'class_filter_array' => array ($this->class_identifier),
 				'as_object' => true,
-				'sort_by' => array ('published', true),
+				'sort_by' => array ('node_id', true),
 				'offset' => $this->offset,
 				'limit' => $this->limit,
 				'depth' => $this->depth,
-				//'ignore_visibility' => false,
+				'ignore_visibility' => false,
 				'load_data_map' => true
 			);
 			$this->nodes_tree_list = eZFunctionHandler::execute (
@@ -454,7 +430,7 @@ class MA_Content_Object_Tree_Nodes_List {
 				'class_filter_array' => array ($this->class_identifier),
 				'as_object' => true,
 				'depth' => $this->depth,
-			//	'ignore_visibility' => false,
+				'ignore_visibility' => false,
 				'load_data_map' => false
 			);
 
@@ -477,7 +453,7 @@ class MA_Content_Object_Tree_Nodes_List {
 			//'offset' => $this->offset,
 			'limit' => 1,
 			'depth' => $this->depth,
-			//'ignore_visibility' => false,
+			'ignore_visibility' => false,
 			'load_data_map' => false
 		);
 		$result = eZFunctionHandler::execute (
@@ -486,6 +462,33 @@ class MA_Content_Object_Tree_Nodes_List {
 		);
 		$this->last_node_to_change = reset ($result);
 
+	}
+
+	protected function set_change_result (){
+		//$this->result['counter'] = count ($this->nodes_tree_list_changed);
+		$this->result['limit'] = $this->limit;
+		$this->result['offset'] = $this->offset;
+		$this->result['parent_node_id'] = $this->parent_node_id;
+		//$this->result['nodes']['counter_fetched'];
+		$this->result['nodes']['counter'] = count ($this->nodes_tree_list_changed['nodes_ids']);
+		//$this->result['nodes']['counter'] = $this->nodes_tree_list_count_step;
+		/**
+		 * it dosen't show how many nodes were changed, it show only how many nodes are of the class in the tree (fetched nodes in all languages).
+		 */
+		//$this->result['count'] = $this->nodes_tree_list_count;
+		$this->result['count'] = $this->nodes_tree_list_count;
+		//$this->result['nodes']['nodes'] = $this->nodes_tree_list_changed;
+		//$this->result['objects']['langs']['changed']['counter'] = 0;
+
+		if ($this->last_node_to_change->attribute ('node_id') == end ($this->nodes_tree_list_changed['nodes_ids'])){
+			$this->result['end_flag'] = true;
+		}
+		else{
+			$this->result['end_flag'] = false;
+		}
+	}
+	public function get_change_result (){
+		return $this->result;
 	}
 
 	protected function change_nodes_tree_content_now (){

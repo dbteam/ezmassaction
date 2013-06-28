@@ -54,11 +54,11 @@ class MA_Error {
 	 * @param null $type - MA_Error::ERROR/WARNING/..
 	 * @param bool $ezdebug_fg
 	 */
-	public function set_error ($messagee = '', $source = '', $line = null, $type = null, $ezdebug_fg = true){
+	public function set_error ($messagee = '', $source = '', $line = 0, $type = 0, $ezdebug_fg = true){
 		$this->error = array ();
 
 		$this->error['message'] = $messagee;
-		$this->error['source'] = implode ('', $this->path). $source;
+		$this->error['source'] = implode (':: ', $this->path). ':: '. $source;
 		$this->error['line'] = $line;
 		$this->error['type'] = ($type? $type: self::DEBUG);
 
@@ -84,14 +84,16 @@ class MA_Error {
 		if ($unset_error_fg){
 			$this->error = array_shift ($this->errors_list);
 			$error = $this->error;
+
+			$this->pop_parent_source_line();
 		}
 		else{
 			$error = $this->error;
-			$this->error = array();
+			//$this->error = array();
 		}
 
 		if ($as_string_fg){
-			$error = $error['message']. ' '. $error['source']. ' Line: '. $error['line']. ' Type('. $error['type']. ')';
+			$error = $error['message']. ' '. $error['source']. ' Line: '. $error['line']. ' Type('. $error['type']. ').';
 		}
 
 		return $error;
@@ -133,14 +135,26 @@ class MA_Error {
 	public function clear_errors (){
 		$this->errors_list = array ();
 	}
+
 	public function add_parent_source_line ($source = '', $line = null){
-		$this->path[] = $source. ' Line: '. $line. ' :: ';
+		if ($line){
+			$this->path[] = $source. ' Line: '. $line;
+		}
+		else{
+			$this->path[] = $source;
+		}
+
 	}
+	/*
+	 * require refatorize code using MA_Error
+	 * before the programmer have to call the method yourself at now it is called in ::get_error(true|false, true)
+	 *
+	 */
 	public function pop_parent_source_line (){
 		array_pop($this->path);
 		$this->path = array_values($this->path);
 	}
-	public function clear_parent_source_line (){
+	public function clear_parents_source_line (){
 		$this->path = array();
 	}
 	public function get_error_message ($unset_error_fg = false){
