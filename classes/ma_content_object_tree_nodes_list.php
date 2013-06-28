@@ -103,7 +103,8 @@ class MA_Content_Object_Tree_Nodes_List {
 		//$this->set_limit ($_limit);
 
 		if ($this->error->has_error()){
-			return false;
+			//dosnt work
+			//return false;
 		}
 	}
 
@@ -153,11 +154,10 @@ class MA_Content_Object_Tree_Nodes_List {
 			$this->error->set_error('Class missing.', __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
+		$this->class = array();
 		if (is_integer ($_class)){
 			$this->class_id = $_class;
-
 			$this->class = eZContentClass::fetch ($this->class_id);
-
 			$this->class_identifier = $this->class->attribute ('identifier');
 		}
 		else{
@@ -166,14 +166,16 @@ class MA_Content_Object_Tree_Nodes_List {
 		}
 		return true;
 	}
-	protected function set_languages ($_languages){
-		if (!reset ($_languages) and empty ($_languages)){
+	protected function set_languages ($languages){
+		if (!is_array($languages)){
 			$this->error->set_error('Languages missing.', __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
-
-		$this->languages_codes = $_languages;
-
+		if (!reset ($languages)){
+			$this->error->set_error('Languages missing.', __METHOD__, __LINE__, MA_Error::ERROR);
+			return false;
+		}
+		$this->languages_codes = $languages;
 		return true;
 	}
 	protected function set_depth ($_depth = null){
@@ -355,7 +357,7 @@ class MA_Content_Object_Tree_Nodes_List {
 					);
 
 					//echo get_class($content_attribute);
-					//die();
+
 					//$content_attribute->fetchInput ($this->http, $this->attribute_base);
 					//$content_attribute->setContent ($this->attribute_content);
 					$content_attribute->fromString ($this->attribute_content);
@@ -533,29 +535,14 @@ class MA_Content_Object_Tree_Nodes_List {
 		$this->children['counter'] = 0;
 		$this->depth_counter = 0;
 
-		var_dump($this->name_attribute_identifier);
-		die();
+		return true;
 	}
 	protected function set_create_method_type ($type = null){
 		$this->create_method_type = ($type? (int) $type: self::CR_METHOD_LINE_X);
 	}
-
 	protected function set_name_attribute_identifier (){
-		$contentobject_name_pattern = $this->class->ContentObjectName;
-
-		//preg_match('/^<(.*)>.*/', $contentobject_name_pattern, $this->containers_name_attribute_identifier);
-		//$this->containers_name_attribute_identifier = $this->containers_name_attribute_identifier[1];
-		$pos1 = strpos($contentobject_name_pattern, '<');
-		$pos1++;
-		$pos2 = strpos($contentobject_name_pattern, '>');
-		$this->name_attribute_identifier = substr ($contentobject_name_pattern, $pos1, $pos2 - $pos1);
-
-		$pos1 = 0;
-		$pos2 = false;
-		$pos2 = strpos($this->name_attribute_identifier, '\|');
-		if ($pos2){
-			$this->name_attribute_identifier = substr($this->name_attribute_identifier, $pos1, $pos2 - $pos1);
-		}
+		//var_dump($this->class);
+		$this->name_attribute_identifier = $this->get_class_name_attribute_identifier ($this->class);
 	}
 	protected function set_first_depth_objects_count ($first_depth_objects_count = null){
 		$this->first_depth_objects_count = (($first_depth_objects_count > 0)? $first_depth_objects_count: 10);
@@ -563,6 +550,7 @@ class MA_Content_Object_Tree_Nodes_List {
 	protected function set_base_name ($base_name = null){
 		$base_name = trim($base_name);
 		$this->base_name = ($base_name? $base_name: 'Tree base name');
+		var_dump($this->base_name);
 	}
 	protected function preset_parameters (){
 		$this->parameters = array();
@@ -594,26 +582,45 @@ class MA_Content_Object_Tree_Nodes_List {
 		}
 	}
 	protected function set_containers_name_attribute_identifier (){
-		$contentobject_name_pattern = $this->containers_class->ContentObjectName;
-		var_dump(__LINE__);
-		var_dump($contentobject_name_pattern);
-		//preg_match('/^<(.*)>.*/', $contentobject_name_pattern, $this->containers_name_attribute_identifier);
-		//$this->containers_name_attribute_identifier = $this->containers_name_attribute_identifier[1];
+		$this->containers_name_attribute_identifier = $this->get_class_name_attribute_identifier ($this->containers_class);
+	}
+	protected function get_class_name_attribute_identifier (eZContentClass $class){
+		$objects_name_attribute_identifier = '';
+		$contentobject_name_pattern = $class->ContentObjectName;
+
+		/*
+		 * preg_match('/^<(.*)>.*  /', $contentobject_name_pattern, $this->containers_name_attribute_identifier);
+		 * $this->containers_name_attribute_identifier = $this->containers_name_attribute_identifier[1];
+		*/
+		//<short_name|name>
+		//short_name|name
 		$pos1 = strpos($contentobject_name_pattern, '<');
 		$pos1++;
 		$pos2 = strpos($contentobject_name_pattern, '>');
-		$this->containers_name_attribute_identifier = substr ($contentobject_name_pattern, $pos1, $pos2 - $pos1);
-		var_dump($this->containers_class);
+		$objects_name_attribute_identifier = substr ($contentobject_name_pattern, $pos1, $pos2 - $pos1);
 
+		/* data: short_name|name
+		 * result: name
+		 * data: short_name|to_much_time|name
+		 * result: name
+		*/
 		$pos1 = 0;
 		$pos2 = false;
-		$pos2 = strpos($this->containers_name_attribute_identifier, '|');
+		$pos2 = strpos($objects_name_attribute_identifier, '|');
 		if ($pos2 > 0){
-			$this->containers_name_attribute_identifier = substr($this->containers_name_attribute_identifier, $pos1, $pos2 - $pos1);
+			$pos2++;
+			$objects_name_attribute_identifier = substr($objects_name_attribute_identifier, $pos2);
+			$pos2 = false;
+			$pos2 = strpos($objects_name_attribute_identifier, '|');
+			if ($pos2 > 0){
+				$pos2++;
+				$objects_name_attribute_identifier = substr($objects_name_attribute_identifier, $pos2);
+			}
 		}
-		var_dump($this->containers_name_attribute_identifier);
-
+		unset ($class);
+		return $objects_name_attribute_identifier;
 	}
+
 	protected function set_containers_base_name ($base_name = null){
 		$base_name = trim($base_name);
 		$this->containers_base_name = 'Container '. ($base_name? $base_name: 'Tree base name');
@@ -626,7 +633,6 @@ class MA_Content_Object_Tree_Nodes_List {
 			$this->containers_name_attribute_identifier => $this->containers_base_name
 		);
 	}
-
 
 	public function create_tree (){
 		switch ($this->create_method_type){
@@ -648,9 +654,11 @@ class MA_Content_Object_Tree_Nodes_List {
 		while ($this->depth_counter < $this->depth){
 			$this->children['list'] = array();
 			if (!$this->create_children ()){
+				unset ($this->children['list']);
 				return false;
 			}
 			if (!$this->create_container()){
+				unset ($this->children['list']);
 				return false;
 			}
 			unset ($this->children['list']);
@@ -661,7 +669,9 @@ class MA_Content_Object_Tree_Nodes_List {
 	protected function create_children (){
 		$this->children['counter'] = 0;
 		while ($this->children['counter'] < $this->children['count']){
-			$this->parameters['attributes'][$this->name_attribute_identifier] = $this->base_name. ' _'. ($this->children['all']['counter'] + 1);
+			$this->parameters['attributes'][$this->name_attribute_identifier]
+				= $this->base_name. ' _'. ($this->children['all']['counter'] + 1). '_';
+
 			$this->children['list'][$this->children['counter']] = eZContentFunctions::createAndPublishObject($this->parameters);
 			//$this->children['last'] = end ($this->children['list']);
 			if (!$this->children['list'][$this->children['counter']]){
@@ -675,15 +685,16 @@ class MA_Content_Object_Tree_Nodes_List {
 			}
 			$this->children['all']['counter']++;
 			$this->children['counter']++;
-			return true;
 		}
+		return true;
 	}
 	protected function create_container (){
 		if ($this->depth_counter < ($this->depth - 1)){
 			$parents = array();
+			var_dump($this->containers_parameters);
 			if ($this->class_identifier != $this->containers_class_identifier){
-				$this->containers_parameters['attributes'][$this->containers_name_attribute_identifier] = $this->containers_base_name. ' _'.
-					($this->depth_counter + 1);
+				$this->containers_parameters['attributes'][$this->containers_name_attribute_identifier]
+					= $this->containers_base_name. ' _'. ($this->depth_counter + 1). '_';
 				$parents[0] = eZContentFunctions::createAndPublishObject($this->containers_parameters);
 				if (!$parents[0]){
 					$this->error->set_error('Cannot create object.'. "\n".
@@ -695,13 +706,22 @@ class MA_Content_Object_Tree_Nodes_List {
 					unset ($parents[0]);
 					return false;
 				}
+				$parents['node'] = eZContentObjectTreeNode::fetchNode($parents[0]->ID, $this->containers_parameters['parent_node_id']);
+				//var_dump($parents[0]);
+
+				//var_dump('parent node:');
+				//var_dump($parents['node']);
+				//die();
 			}
 			else{
 				$parents[0] = end ($this->children['list']);
+				$parents['node'] = eZContentObjectTreeNode::fetchNode($parents[0]->attribute('ID'), $this->containers_parameters['parent_node_id']);
 			}
-			$this->parameters['parent_node_id'] = $parents[0]->attribute('node_id');
-			$this->containers_parameters['parent_node_id'] = $parents[0]->attribute('node_id');
+			$this->parameters['parent_node_id'] = $parents['node']->attribute('node_id');
+			$this->containers_parameters['parent_node_id'] = $parents['node']->attribute('node_id');
+
 			unset ($parents[0]);
+			unset ($parents['node']);
 		}
 		return true;
 	}

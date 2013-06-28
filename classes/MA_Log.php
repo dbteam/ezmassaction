@@ -27,9 +27,11 @@ class MA_Log {
 		}
 	}
 
-	public function write ($content = ''){
+	public function write ($content = '', $begin_nl_fg = true, $end_nl_fg = false){
 		$this->content = $content;
-		eZLog::write ($this->content, $this->file_full_name);
+		$begin_nl = ($begin_nl_fg? "\n": '');
+		$end_nl= ($end_nl_fg? "\n": '');
+		eZLog::write ($begin_nl. $this->content. $end_nl, $this->file_full_name);
 	}
 
 	public function set_file_name ($file_name = null){

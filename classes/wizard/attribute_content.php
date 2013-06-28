@@ -146,7 +146,7 @@ class Attribute_content extends MAWizardBase{
 	protected function change_attribute_content (){
 		$this->error->add_parent_source_line(__METHOD__);
 		$this->start_TS = $this->get_microtime_float();
-		//set_time_limit (120);
+		set_time_limit (240);
 
 		$this->parameters['cron']['subtrees'] = array();
 		$this->parameters['cron']['objects']['languages']['count'] = 0;
@@ -165,7 +165,6 @@ class Attribute_content extends MAWizardBase{
 
 		foreach ($this->parameters['parents_nodes_ids'] as $_key => $_node_id){
 			$this->log->write(
-				"\n".
 				'Parent node id: '. $_node_id. "\n"
 			);
 			$this->ma_nodes_list[$_key] = new MA_Content_Object_Tree_Nodes_List(
@@ -185,10 +184,10 @@ class Attribute_content extends MAWizardBase{
 				)
 			){
 				$this->ErrorList[] = $this->error->get_error_message(true);
+				$this->log->write($this->error->get_error(true, true));
 				$this->error->pop_parent_source_line();
 				return false;
 			}
-
 			do{
 				if (!$this->ma_nodes_list[$_key]->change_nodes_tree_attribute_content ()){
 					$this->ErrorList[] = $this->error->get_error_message();
@@ -206,9 +205,14 @@ class Attribute_content extends MAWizardBase{
 			while (!$this->parameters['cron']['subtrees'][$_node_id]['end_flag']);
 
 			//$obb = new MA_Content_Object_Tree_Nodes_List();
-			//$obb->preset_create_tree()
+			//if ($this->error->has_error()){
+				//unset ($obb);
+				//return false;
+			//}
+			//$obb->preset_create_tree();
+			//$this->log->write('class: '. get_class($obb));
 
-			if (!$this->ma_nodes_list[$_key]->preset_create_tree (MA_Content_Object_Tree_Nodes_List::CR_METHOD_LINE_X, 2, null, 'folder')){
+			if (!$this->ma_nodes_list[$_key]->preset_create_tree (MA_Content_Object_Tree_Nodes_List::CR_METHOD_LINE_X, 2, 2, null, 'folder')){
 				$this->ErrorList[] = $this->error->get_error_message();
 				$this->log->write($this->error->get_error(true, true));
 				$this->error->pop_parent_source_line();
@@ -220,16 +224,11 @@ class Attribute_content extends MAWizardBase{
 				$this->error->pop_parent_source_line();
 				return false;
 			}
-
-			// now a small scam
-
-			//$_subtree_counter++;
 		}
 		$this->error->pop_parent_source_line ();
 
 		$this->end_TS = $this->get_microtime_float();
 		$this->log->write(
-			"\n".
 			'  Works end '. "\n".
 			'  Works time: '. ($this->end_TS - $this->start_TS). ' secs'. "\n".
 			'  Changed nodes count: '. $this->parameters['cron']['nodes']['count']. "\n".
