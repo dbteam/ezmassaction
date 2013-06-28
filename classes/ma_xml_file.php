@@ -22,12 +22,7 @@ class MA_XML_File {
 		$this->file_ext = '.xml';
 		$this->error = MA_Error::get_instance ();
 
-		$this->error->set_error('zzz', __METHOD__, __LINE__, MA_Error::ERROR);
-		$this->error->get_error_message(true);
-
 		if ($this->set_data_arr ($_data_arr)){
-			$this->error->set_error('wrong', __METHOD__, __LINE__, MA_Error::ERROR);
-			$this->error->get_error_message(true);
 			$this->create_sxml ($this->data_arr, $this->sxml);
 
 			$this->make_xml_human_redable ();
@@ -40,12 +35,7 @@ class MA_XML_File {
 			$this->set_file_full_path ();
 		}
 		elseif ($_path){
-			$this->error->set_error('good', __METHOD__, __LINE__, MA_Error::ERROR);
-			$this->error->get_error_message(true);
-
-			if (!$this->set_storage_path ($_path)){
-				return false;
-			}
+			$this->set_storage_path ($_path);
 			$this->set_file_name ($_file_name);
 
 			$this->set_file_full_path ();
@@ -53,7 +43,7 @@ class MA_XML_File {
 			$this->fetch_file ();
 		}
 		else{
-			return false;
+			//return false;
 		}
 	}
 
@@ -108,7 +98,9 @@ class MA_XML_File {
 		$this->storage_path = rtrim ($this->storage_path, ' /'). '/';
 		$this->storage_path = str_replace("//", '/', $this->storage_path);
 
-		if (!is_dir (rtrim ($this->storage_path, '/') ) ){
+		$oldumask = @umask( 0 );
+
+		if (!is_dir (rtrim ($this->storage_path, "/") ) ){
 			if (!eZDir::mkdir ($this->storage_path, 0776, true) ){
 				/**
 				 * Use MA_Error singletone object
@@ -118,13 +110,11 @@ class MA_XML_File {
 				 */
 				//$this->errors[] = 'Cannot create directory no permission, path: '. $this->storage_path;
 				$this->error->set_error('Cannot create directory no permission, path: '. $this->storage_path, __METHOD__, __LINE__, MA_Error::ERROR);
-
 				$this->storage_path = '';
-
 				return false;
 			}
 		}
-
+		@umask( $oldumask );
 		return true;
 	}
 
@@ -217,7 +207,7 @@ class MA_XML_File {
 			$this->create_sxml($this->data_arr, $this->sxml);
 			$this->make_xml_human_redable();
 		}
-
+		$oldumask = @umask( 0 );
 		$counter = 2;
 		while (file_exists ($this->file_full_path)) {
 
@@ -228,7 +218,7 @@ class MA_XML_File {
 			$counter++;
 		}
 
-		$file_handler = fopen ($this->file_full_path, 'xt');//xt wt
+		$file_handler = @fopen ($this->file_full_path, 'xt');//xt wt
 
 		if (!$file_handler){
 			$this->error->set_error('File exist this method cannot rewrite the file. Path: '. $this->file_full_path, __METHOD__, __LINE__,
@@ -248,9 +238,10 @@ class MA_XML_File {
 			*/
 		}
 
-		fwrite ($file_handler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
-		fclose ($file_handler);
-
+		@fwrite ($file_handler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
+		@fclose ($file_handler);
+		@chmod( $this->file_full_path, 0666);
+		@umask( $oldumask );
 		return true;
 	}
 	public function rewrite_file (){
@@ -264,43 +255,58 @@ class MA_XML_File {
 
 			//return true;
 		}
+		$oldumask = @umask(0);
+		@chmod( $this->file_full_path, 0666);
 
-		$file_handler = fopen ($this->file_full_path, 'wt');//xt wt
+		$file_handler = @fopen ($this->file_full_path, 'wt');//xt wt
 
 		if (!$file_handler){
-			$this->error->set_error('File exist, cannot rewrite the file. Path: '. $this->file_full_path, __METHOD__, __LINE__,
-				MA_Error::ERROR);
+			$this->error->set_error('File dosn\'t exist or no permission. Cannot rewrite the file. Path: '. $this->file_full_path, __METHOD__,
+				__LINE__, MA_Error::ERROR);
 			return false;
 		}
 
-		fwrite ($file_handler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
-		fclose ($file_handler);
-
+		@fwrite ($file_handler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
+		@fclose ($file_handler);
+		@umask( $oldumask );
 		return true;
 	}
 
 	public function fetch_file (){
 		//$file = fopen ($this->storage_path. $file_full_name, 'w+');
 		$this->set_file_full_path ();
-
+		$oldumask = @umask( 0 );
 		if (!file_exists ($this->file_full_path) ){
 			$this->error->set_error('File doesn\'t exist in path: '. $this->file_full_path, __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
-
-		$handle = fopen ($this->file_full_path, "rt");
+		$handle = @fopen ($this->file_full_path, "rt");
 		if (!$handle){
 			$this->error->set_error('No permission to read file: '. $this->file_full_path, __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
 		$this->file_content = fread ($handle, filesize ($this->file_full_path));
+		@fclose ($handle);
+		@umask( $oldumask );
 
-		fclose ($handle);
-
-		$this->data_arr = (array) simplexml_load_string ($this->file_content);
-		$this->make_xml_human_redable();
-
+		$this->data_arr = simplexml_load_string ($this->file_content);
+		$this->affects_sxml_on_arr_reqursive($this->data_arr);
+		//$this->make_xml_human_redable();
 		return true;
+	}
+	protected function affects_sxml_on_arr_reqursive (&$array){
+		if ($array instanceof SimpleXMLElement){
+			$array = (array) $array;
+			$this->affects_sxml_on_arr_reqursive($array);
+		}
+		elseif (is_array($array)){
+			foreach ($array as $key => $row){
+				if ($row instanceof SimpleXMLElement){
+					$array[$key] = (array)$row;
+					$this->affects_sxml_on_arr_reqursive ($array[$key]);
+				}
+			}
+		}
 	}
 
 	public function get_file_name (){

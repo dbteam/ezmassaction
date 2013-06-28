@@ -88,12 +88,12 @@ class Content_Changer{
 		$this->set_xml_data_file_name();
 		$this->set_folder_container();
 
-		$this->cli->output('file name: '. $this->options['filename-part']);
+		//$this->cli->output('file name: '. $this->options['filename-part']);
 
 		//$this->script->shutdown(0);
 
 		$this->set_ma_xml();
-		$this->set_xml_data_arr();
+		$this->preset_xml_data_arr();
 	}
 
 
@@ -168,18 +168,10 @@ class Content_Changer{
 		return true;
 	}
 
-	protected function set_xml_data_arr (){
-		$this->error->add_parent_source_line(__METHOD__);
-
-		if (!$this->ma_xml_file->fetch_file()){
-			$this->cli->error($this->error->get_error());
-			$this->write_log($this->error->get_error(true, true));
-			$this->script->shutdown(1);
-			return false;
-		}
-
+	protected function preset_xml_data_arr (){
 		$this->xml_data_arr = $this->ma_xml_file->get_data_arr();
-		if (!reset($this->xml_data_arr)){
+		if (!count ($this->xml_data_arr)){
+			$this->error->set_error('No data in XML file.', __METHOD__, __LINE__, MA_Error::ERROR);
 			$this->cli->error($this->error->get_error());
 			$this->write_log($this->error->get_error(true, true));
 			$this->script->shutdown(1);
@@ -192,8 +184,8 @@ class Content_Changer{
 			$this->xml_data_arr['cron']['limit'] = 10;
 			$this->xml_data_arr['cron']['subtrees'] = array ();
 		}
-
-		$this->error->pop_parent_source_line();
+		$this->xml_data_arr['cli']['result']['objects']['langs']['count'] = 0;
+		$this->xml_data_arr['cli']['result']['nodes']['count'] = 0;
 		return true;
 	}
 
@@ -204,6 +196,7 @@ class Content_Changer{
 		}
 		$this->set_result();
 		$this->write_log($this->result['summation']);
+		$this->write_result();
 		$this->display_summation();
 		
 		return true;
@@ -272,10 +265,17 @@ class Content_Changer{
 	}
 	protected function set_result (){
 		$this->xml_data_arr['cli']['result']['works_TS'] = $this->end_TS - $this->start_TS;
-		foreach ($this->xml_data_arr['cron']['subrees'] as $subtree){
+		foreach ($this->xml_data_arr['cron']['subtrees'] as $subtree){
 			$this->xml_data_arr['cli']['result']['objects']['langs']['count'] += $subtree['objects']['langs']['counter'];
 			$this->xml_data_arr['cli']['result']['nodes']['count'] += $subtree['nodes']['counter'];
 		}
+
+		$this->result['summation'] =
+			'  Works finished.'. "\n".
+			'  works time: '. $this->xml_data_arr['cli']['result']['works_TS']. ' secs'. "\n".
+			'  Count of changed nodes: '. $this->xml_data_arr['cli']['result']['nodes']['count']. "\n".
+			'  Count of changed language versions objects: '. $this->xml_data_arr['cli']['result']['objects']['count']. "\n".
+			"\n";
 
 	}
 	protected function write_result (){
@@ -289,14 +289,6 @@ class Content_Changer{
 			return false;
 		}
 		$this->error->pop_parent_source_line();
-
-		$this->result['summation'] =
-			"\n".
-			'  Works finished.'. "\n".
-			'  works time: '. $this->xml_data_arr['cli']['result']['works_TS']. ' secs'. "\n".
-			'  Count of changed nodes: '. $this->xml_data_arr['cli']['result']['nodes']['count']. "\n".
-			'  Count of changed language versions objects: '. $this->xml_data_arr['cli']['result']['nodes']['counter']['count']. "\n".
-			"\n";
 	}
 	protected function display_summation (){
 		$this->cli->output(

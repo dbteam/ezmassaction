@@ -188,6 +188,7 @@ class MA_Content_Object_Tree_Nodes_List {
 		$this->result = array ();
 		$this->result['objects']['langs']['counter'] = 0;
 		$this->result['nodes']['fetched'] = 0;
+
 	}
 
 
@@ -212,6 +213,7 @@ class MA_Content_Object_Tree_Nodes_List {
 		//$this->http->setPostVariable($this->attribute_post_key, $this->attribute_content);
 		$this->nodes_tree_list_changed['nodes_ids'] = array();
 		$this->error->pop_parent_source_line();
+
 		return true;
 	}
 	protected function set_attribute_identifier ($_attribute_identifier){
@@ -416,6 +418,12 @@ class MA_Content_Object_Tree_Nodes_List {
 			$this->nodes_tree_list_count_step = count ($this->nodes_tree_list);
 		}
 
+		/**
+		 * it dosen't show how many nodes were changed, it show only how many nodes are of the class in the tree (fetched nodes in all languages).
+		 */
+		//$this->result['count'] = $this->nodes_tree_list_count;
+		$this->result['count'] = $this->nodes_tree_list_count;
+
 	}
 	protected function set_all_nodes_tree_count (){
 		if (!$this->cron_flag){
@@ -472,11 +480,7 @@ class MA_Content_Object_Tree_Nodes_List {
 		//$this->result['nodes']['counter_fetched'];
 		$this->result['nodes']['counter'] = count ($this->nodes_tree_list_changed['nodes_ids']);
 		//$this->result['nodes']['counter'] = $this->nodes_tree_list_count_step;
-		/**
-		 * it dosen't show how many nodes were changed, it show only how many nodes are of the class in the tree (fetched nodes in all languages).
-		 */
-		//$this->result['count'] = $this->nodes_tree_list_count;
-		$this->result['count'] = $this->nodes_tree_list_count;
+
 		//$this->result['nodes']['nodes'] = $this->nodes_tree_list_changed;
 		//$this->result['objects']['langs']['changed']['counter'] = 0;
 
