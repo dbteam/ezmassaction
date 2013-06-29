@@ -96,8 +96,6 @@ class MA_Content_Object_Tree_Nodes_List {
 		$this->children['all']['counter'] = 0;
 		$this->children['all']['count'] = 0;
 
-		$this->nodes_tree_list_changed = array();
-
 		//$this->
 		//$this->set_offset ($_offset);
 		//$this->set_limit ($_limit);
@@ -186,9 +184,9 @@ class MA_Content_Object_Tree_Nodes_List {
 	}
 	protected function pre_set_result (){
 		$this->result = array ();
-		$this->result['objects']['langs']['counter'] = 0;
-		$this->result['nodes']['fetched'] = 0;
-
+		$this->result['nodes']['changed']['nodes_ids'] = array();
+		$this->result['objects']['languages']['changed']['counter'] = 0;
+		$this->result['nodes']['fetched']['counter'] = 0;
 	}
 
 
@@ -206,14 +204,22 @@ class MA_Content_Object_Tree_Nodes_List {
 			return false;
 		}
 		$this->set_cron ($cron_flag, $offset, $limit);
+		$this->result['objects']['languages']['changed']['counter'] = 0;
+		$this->result['nodes']['changed']['nodes_ids'] = array();
+		$this->result['nodes']['changed']['counter'] = 0;
 
-		//$this->attribute_base = 'ContentObjectAttribute';
-		//$this->http = eZHTTPTool::instance();
-		//$this->attribute_post_key = $attribute_post_key;
-		//$this->http->setPostVariable($this->attribute_post_key, $this->attribute_content);
-		$this->nodes_tree_list_changed['nodes_ids'] = array();
+		$this->result['nodes']['fetched']['nodes_ids'] = array();
+		$this->result['nodes']['fetched']['counter'] = 0;
+		$this->result['nodes']['count'] = 0;
+
+		/*
+		 *  $this->attribute_base = 'ContentObjectAttribute';
+			$this->http = eZHTTPTool::instance();
+			$this->attribute_post_key = $attribute_post_key;
+			$this->http->setPostVariable($this->attribute_post_key, $this->attribute_content);
+		 */
+		//$this->nodes_tree_list_changed['nodes_ids'] = array();
 		$this->error->pop_parent_source_line();
-
 		return true;
 	}
 	protected function set_attribute_identifier ($_attribute_identifier){
@@ -225,29 +231,22 @@ class MA_Content_Object_Tree_Nodes_List {
 		$this->attribute_identifier = $_attribute_identifier;
 		return true;
 	}
-	protected function set_offset ($_offset = null){
-		if (!$_offset or ($_offset < 1)){
-			$_offset = 2;
-		}
-		//		$_offset = (($_offset > 0)? $_offset: 0);
-		if (!is_numeric ($_offset)){
-			//$this->add_error ('$_offset is not a number. '. __METHOD__. ' '. __LINE__);
+	protected function set_offset ($_offset = 0){
+		$_offset = ((((int)$_offset) > 0)? $_offset: 0);
+		if (!is_integer ((int)$_offset)){
 			$this->error->set_error('Offset is not a number.', __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
 		else{
 			$this->offset = (int) $_offset;
 		}
-
 		return true;
 	}
-	protected function set_limit ($_limit = null){
+	protected function set_limit ($_limit = 10){
 		if (!$_limit or ($_limit < 1)){
 			$_limit = 10;
 		}
-
-		if (!is_numeric ($_limit)){
-			//$this->add_error ('$_count is not a number. '. __METHOD__. ' '. __LINE__);
+		if (!is_integer ((int)$_limit)){
 			$this->error->set_error('Count is not a number.', __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
@@ -265,7 +264,7 @@ class MA_Content_Object_Tree_Nodes_List {
 		$this->attribute_content = $_attribute_content;
 		return true;
 	}
-	protected function set_cron ($_cron_flag = false, $_offset = null, $_limit = null){
+	protected function set_cron ($_cron_flag = false, $_offset = 0, $_limit = 2){
 		if ($_cron_flag){
 			$this->cron_flag = true;
 
@@ -283,7 +282,7 @@ class MA_Content_Object_Tree_Nodes_List {
 			return false;
 		}
 		$this->error->pop_parent_source_line();
-		$this->set_to_next_use ();
+		//$this->set_to_next_use ();
 		$this->set_change_result ();
 		return true;
 	}
@@ -306,20 +305,13 @@ class MA_Content_Object_Tree_Nodes_List {
 
 		$key_4 = 0;
 		foreach ($this->nodes_tree_list as $_key => $node){
-		//	echo 'Node: <br />';
-		//	var_dump($node);
-		//	echo '<br />';
-
 			$object = $node->object();
-			$object_current = $object->currentVersion();
+			//$object_current = $object->currentVersion();
 			$avalaible_languages = $object->availableLanguages ();
 			foreach ($this->languages_codes as $code){
 				if (in_array ($code, $avalaible_languages)){
 					$datamap = $object->fetchDataMap (false, $code);
-
 					$content_attribute = $datamap[$this->attribute_identifier];
-					//var_dump($datamap);
-					//var_dump($content_attribute);
 
 					if (!$content_attribute){
 						$this->error->set_error('No attribute, huge error.', __METHOD__, __LINE__, MA_Error::ERROR);
@@ -327,15 +319,12 @@ class MA_Content_Object_Tree_Nodes_List {
 						return false;
 					}
 
-					//$this->result['objects']['langs']['list'][$object->attribute ('id')]['atttribute']['content']['previous']
+					//$this->result['objects']['languages']['list'][$object->attribute ('id')]['atttribute']['content']['previous']
 					//	= $datamap[$this->attribute_identifier]->content();
 					$this->log->write (
 						'Node id: '. $node->attribute ('node_id'). " ". 'Object id: '. $node->attribute ('contentobject_id'). " ". 'Language: '. $code. "\n".
-						'Content previous: '. $content_attribute->content(). "\n"
+						'Content previous: '. $content_attribute->toString(). "\n"
 					);
-
-					//echo get_class($content_attribute);
-
 					//$content_attribute->fetchInput ($this->http, $this->attribute_base);
 					//$content_attribute->setContent ($this->attribute_content);
 					$content_attribute->fromString ($this->attribute_content);
@@ -354,15 +343,18 @@ class MA_Content_Object_Tree_Nodes_List {
 					*/
 					$content_attribute->store ();
 
-					if (!in_array ($node->attribute ('node_id'), $this->nodes_tree_list_changed['nodes_ids'])){
-						$this->nodes_tree_list_changed['nodes_ids'][$key_4] = $node->attribute ('node_id');
+					if (!in_array ($node->attribute ('node_id'), $this->result['nodes']['changed']['nodes_ids'])){
+						$this->result['nodes']['changed']['nodes_ids'][$key_4] = $node->attribute ('node_id');
 						$key_4++;
+						$this->result['nodes']['changed']['counter'] = $key_4;
 					}
-					$this->result['objects']['langs']['counter']++;
+
+					$this->result['objects']['languages']['changed']['counter']++;
 				}
 			}
 			//$node->store();
-			$this->result['nodes']['counter_fetched'] = $_key;
+			$this->result['nodes']['fetched']['nodes_ids'][$_key] = $node->attribute ('node_id');
+			$this->result['nodes']['fetched']['counter'] = ($_key + 1);
 
 			$object->expireAllViewCache ();
 			//eZContentCacheManager::clearContentCache();
@@ -373,10 +365,13 @@ class MA_Content_Object_Tree_Nodes_List {
 		return true;
 	}
 
+	/**
+	 * @deprecated
+	 */
 	protected function set_to_next_use (){
-		if ($this->cron_flag and $this->nodes_tree_list_count_step >= $this->limit){
-			$this->set_offset ($this->offset + $this->limit);
-		}
+		//if ($this->cron_flag and $this->nodes_tree_list_count_step >= $this->limit){
+		//	$this->set_offset ($this->offset + $this->limit);
+		//}
 	}
 	protected function fetch_nodes_tree_list (){
 		$this->set_all_nodes_tree_count();
@@ -422,7 +417,7 @@ class MA_Content_Object_Tree_Nodes_List {
 		 * it dosen't show how many nodes were changed, it show only how many nodes are of the class in the tree (fetched nodes in all languages).
 		 */
 		//$this->result['count'] = $this->nodes_tree_list_count;
-		$this->result['count'] = $this->nodes_tree_list_count;
+		//$this->result['nodes']['count'] = $this->nodes_tree_list_count;
 
 	}
 	protected function set_all_nodes_tree_count (){
@@ -459,7 +454,7 @@ class MA_Content_Object_Tree_Nodes_List {
 			'as_object' => true,
 			'sort_by' => array ('node_id', false),
 			//'offset' => $this->offset,
-			'limit' => 1,
+			//'limit' => 1,
 			'depth' => $this->depth,
 			'ignore_visibility' => false,
 			'load_data_map' => false
@@ -469,22 +464,16 @@ class MA_Content_Object_Tree_Nodes_List {
 			$_function_parameters
 		);
 		$this->last_node_to_change = reset ($result);
-
+		//unset($result);
 	}
 
 	protected function set_change_result (){
-		//$this->result['counter'] = count ($this->nodes_tree_list_changed);
-		$this->result['limit'] = $this->limit;
-		$this->result['offset'] = $this->offset;
 		$this->result['parent_node_id'] = $this->parent_node_id;
-		//$this->result['nodes']['counter_fetched'];
-		$this->result['nodes']['counter'] = count ($this->nodes_tree_list_changed['nodes_ids']);
-		//$this->result['nodes']['counter'] = $this->nodes_tree_list_count_step;
+		$this->result['nodes']['count'] = $this->nodes_tree_list_count;
+		$this->result['nodes']['step']['count'] = $this->nodes_tree_list_count_step;
+		$this->result['nodes']['last']['id'] = $this->last_node_to_change->attribute ('node_id');
 
-		//$this->result['nodes']['nodes'] = $this->nodes_tree_list_changed;
-		//$this->result['objects']['langs']['changed']['counter'] = 0;
-
-		if ($this->last_node_to_change->attribute ('node_id') == end ($this->nodes_tree_list_changed['nodes_ids'])){
+		if ($this->last_node_to_change->attribute ('node_id') == end ($this->result['nodes']['fetched']['nodes_ids'])){
 			$this->result['end_flag'] = true;
 		}
 		else{
@@ -499,7 +488,7 @@ class MA_Content_Object_Tree_Nodes_List {
 
 	}
 	protected function get_changed_nodes_list (){
-		return $this->nodes_tree_list_changed;
+		//return $this->nodes_tree_list_changed;
 	}
 
 	/**
@@ -656,21 +645,25 @@ class MA_Content_Object_Tree_Nodes_List {
 		}
 	}
 	protected function create_tree_linear_X (){
+		$this->error->add_parent_source_line(__METHOD__);
 		$this->children['count'] = $this->first_depth_objects_count;
 		$this->depth_counter = 0;
 		while ($this->depth_counter < $this->depth){
 			$this->children['list'] = array();
 			if (!$this->create_children ()){
+				$this->error->pop_parent_source_line();
 				unset ($this->children['list']);
 				return false;
 			}
 			if (!$this->create_container()){
+				$this->error->pop_parent_source_line();
 				unset ($this->children['list']);
 				return false;
 			}
 			unset ($this->children['list']);
 			$this->depth_counter++;
 		}
+		$this->error->pop_parent_source_line();
 		return true;
 	}
 	protected function create_children (){
@@ -698,7 +691,7 @@ class MA_Content_Object_Tree_Nodes_List {
 	protected function create_container (){
 		if ($this->depth_counter < ($this->depth - 1)){
 			$parents = array();
-			var_dump($this->containers_parameters);
+			//var_dump($this->containers_parameters);
 			if ($this->class_identifier != $this->containers_class_identifier){
 				$this->containers_parameters['attributes'][$this->containers_name_attribute_identifier]
 					= $this->containers_base_name. ' _'. ($this->depth_counter + 1). '_';

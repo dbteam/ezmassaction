@@ -12,8 +12,6 @@ class MA_Result extends MAWizardBase{
 		parent::__construct ($_tpl, $_params, $_storageName);
 
 		$this->tpl_name = 'attribute_content/result';
-
-		echo __METHOD__;
 	}
 
 	function postCheck(){

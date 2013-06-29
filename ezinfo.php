@@ -17,7 +17,7 @@
 class eZMassaction
 {
     // set manually - is used in email header, and in file header @version
-    const SOFTWARE_VERSION = '0.0.000124';
+    const SOFTWARE_VERSION = '0.0.900088';
 
     static function info()
     {

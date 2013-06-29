@@ -71,8 +71,8 @@ else{
 	$Result =  $step->run();
 
 	$parameters = $step->get_parameters ();
-	echo '<br />parameters: <br />';
-	var_dump($parameters);//['subtrees']
+	//echo '<br />parameters: <br />';
+	//var_dump($parameters);//['subtrees']
 	//var_dump($step->MetaData);
 
 	//echo '<br /> Errors: ';
@@ -80,7 +80,7 @@ else{
 
 	return $Result;
 }
-
+/*
 if (strpos (trim ($module->Functions['index']['custom_view_parameters']['index']['url_alias'], "/"), "/")){
 	$url_alias_arr = explode("/", $module->Functions['index']['custom_view_parameters']['index']['url_alias']);
 	if (isset ($url_alias_arr[1])){
@@ -99,3 +99,5 @@ else{
 }
 
 return $module->redirectionURI($module_dir_name, $view_alias, array(), null, $userParameters);
+*/
+

@@ -23,7 +23,7 @@ Tabs[]=massaction
 [Topmenu_massaction]
 NavigationPartIdentifier=ezmassaction_navigationpart
 URL[]
-URL[default]=massaction/wizard
+URL[default]=massaction/attribute_content
 Name=Mass action
 Tooltip=Admin Mass action
 

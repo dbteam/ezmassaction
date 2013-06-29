@@ -58,7 +58,7 @@ class MA_Error {
 		$this->error = array ();
 
 		$this->error['message'] = $messagee;
-		$this->error['source'] = implode (':: ', $this->path). ':: '. $source;
+		$this->error['source'] = (isset ($this->path[0])? implode (":: ", $this->path). ":: ": ''). $source;
 		$this->error['line'] = $line;
 		$this->error['type'] = ($type? $type: self::DEBUG);
 
@@ -93,7 +93,7 @@ class MA_Error {
 		}
 
 		if ($as_string_fg){
-			$error = $error['message']. ' '. $error['source']. ' Line: '. $error['line']. ' Type('. $error['type']. ').';
+			$error = $error['message']. " ". $error['source']. " Line: ". $error['line']. " Type(". $error['type']. ').';
 		}
 
 		return $error;
@@ -138,7 +138,7 @@ class MA_Error {
 
 	public function add_parent_source_line ($source = '', $line = null){
 		if ($line){
-			$this->path[] = $source. ' Line: '. $line;
+			$this->path[] = $source. " Linee: ". $line;
 		}
 		else{
 			$this->path[] = $source;

@@ -5,6 +5,7 @@ class MA_XML_File {
 	protected $sxml_flag;
 	protected $xml_str_hun_rle;
 	protected $storage_path;
+	protected $container;
 	protected $data_arr;
 	//protected $errors;
 	protected $file_content;
@@ -28,7 +29,7 @@ class MA_XML_File {
 			$this->make_xml_human_redable ();
 
 			if (!$this->set_storage_path ($_path)){
-				return false;
+			//	return false;
 			}
 			$this->set_file_name ($_file_name);
 
@@ -50,12 +51,14 @@ class MA_XML_File {
 
 	public function set_data_arr ($_data_arr = ''){
 		if (!$_data_arr){
+			//$this->error->set_error('Missing data'. __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
 		elseif (is_numeric ($_data_arr) or is_string ($_data_arr)){
 			$this->data_arr = array ($_data_arr);
 		}
 		elseif (!is_array ($_data_arr)){
+			$this->error->set_error('wrong data'. __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
 		else{
@@ -69,7 +72,7 @@ class MA_XML_File {
 		return $this->data_arr;
 	}
 
-	protected function set_file_name ($_file_name = 'massaction'){
+	public function set_file_name ($_file_name = 'massaction'){
 		$this->file_name = str_replace ('\.xml', '', $_file_name);
 		if (!$this->file_original_name){
 			$this->file_original_name = $this->file_name;
@@ -80,7 +83,7 @@ class MA_XML_File {
 	protected function set_file_full_name (){
 		$this->file_full_name = $this->file_name. $this->file_ext;
 	}
-	protected function set_file_full_path (){
+	public function set_file_full_path (){
 		$this->file_full_path = $this->storage_path. $this->file_full_name;
 	}
 
@@ -90,17 +93,23 @@ class MA_XML_File {
 	 */
 	protected function set_storage_path ($_path = 'massaction'){
 		if (!trim ($_path)){
+			$this->error->set_error('Path missing, path: '. $this->storage_path, __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
 		//for server on Windows:
-		$this->storage_path = str_replace ('\\', '/', $_path);
+		// path: /var/www/myweb/var/plain_site/storage/module-dir-name/
+		$_path = str_replace ('\\', '/', $_path);
 
-		$this->storage_path = rtrim ($this->storage_path, ' /'). '/';
+		$_path = rtrim ($_path, ' /');
+		$pos = strrpos($_path, "/");
+
+		$this->container = substr ($_path, ($pos + 1));
+		$this->storage_path = $_path. '/';
 		$this->storage_path = str_replace("//", '/', $this->storage_path);
 
 		$oldumask = @umask( 0 );
 
-		if (!is_dir (rtrim ($this->storage_path, "/") ) ){
+		if (!is_dir (rtrim ($this->storage_path, '/') ) ){
 			if (!eZDir::mkdir ($this->storage_path, 0776, true) ){
 				/**
 				 * Use MA_Error singletone object
@@ -116,6 +125,9 @@ class MA_XML_File {
 		}
 		@umask( $oldumask );
 		return true;
+	}
+	public function get_container (){
+		return $this->container;
 	}
 
 	protected function make_xml_human_redable (){
@@ -141,14 +153,15 @@ class MA_XML_File {
 						$this->create_sxml ($value, $subnode);
 					}
 					else{
-						$this->create_sxml ($value, $data_xml);
+						$subnode = $data_xml->addChild ("_key_$key");
+						$this->create_sxml ($value, $subnode);
 					}
 				}
-				elseif (is_numeric ($key) ) {
-					$data_xml->addChild ("_key_$key","$value");
+				elseif (!is_numeric ($key) ) {
+					$data_xml->addChild ("$key","$value");
 				}
 				else{
-					$data_xml->addChild ("$key","$value");
+					$data_xml->addChild ("_key_$key","$value");
 				}
 			}
 		}
@@ -210,17 +223,12 @@ class MA_XML_File {
 		$oldumask = @umask( 0 );
 		$counter = 2;
 		while (file_exists ($this->file_full_path)) {
-
 			$this->set_file_name ($this->file_original_name. '_'. $counter);
-
 			$this->set_file_full_path ();
-
 			$counter++;
 		}
 
-		$file_handler = @fopen ($this->file_full_path, 'xt');//xt wt
-
-		if (!$file_handler){
+		if (file_exists ($this->file_full_path)){
 			$this->error->set_error('File exist this method cannot rewrite the file. Path: '. $this->file_full_path, __METHOD__, __LINE__,
 				MA_Error::ERROR);
 			return false;
@@ -237,6 +245,7 @@ class MA_XML_File {
 			}
 			*/
 		}
+		$file_handler = @fopen ($this->file_full_path, 'xt');//xt wt
 
 		@fwrite ($file_handler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
 		@fclose ($file_handler);
@@ -252,22 +261,20 @@ class MA_XML_File {
 			}
 			$this->create_sxml($this->data_arr, $this->sxml);
 			$this->make_xml_human_redable ();
-
-			//return true;
 		}
 		$oldumask = @umask(0);
-		@chmod( $this->file_full_path, 0666);
-
+		if (file_exists($this->file_full_path)){
+			@chmod( $this->file_full_path, 0666);
+		}
 		$file_handler = @fopen ($this->file_full_path, 'wt');//xt wt
-
 		if (!$file_handler){
-			$this->error->set_error('File dosn\'t exist or no permission. Cannot rewrite the file. Path: '. $this->file_full_path, __METHOD__,
+			$this->error->set_error('No permission. Cannot rewrite the file. Path: '. $this->file_full_path, __METHOD__,
 				__LINE__, MA_Error::ERROR);
 			return false;
 		}
-
 		@fwrite ($file_handler, $this->xml_str_hun_rle, strlen ($this->xml_str_hun_rle) );
 		@fclose ($file_handler);
+		@chmod( $this->file_full_path, 0666);
 		@umask( $oldumask );
 		return true;
 	}
@@ -280,7 +287,7 @@ class MA_XML_File {
 			$this->error->set_error('File doesn\'t exist in path: '. $this->file_full_path, __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
 		}
-		$handle = @fopen ($this->file_full_path, "rt");
+		$handle = fopen ($this->file_full_path, "rt");
 		if (!$handle){
 			$this->error->set_error('No permission to read file: '. $this->file_full_path, __METHOD__, __LINE__, MA_Error::ERROR);
 			return false;
@@ -294,16 +301,52 @@ class MA_XML_File {
 		//$this->make_xml_human_redable();
 		return true;
 	}
+
+	/**
+	 * Reqursive method works probably on 110%
+	 *
+	 * @param $array array|SimpleXMLElement
+	 */
 	protected function affects_sxml_on_arr_reqursive (&$array){
 		if ($array instanceof SimpleXMLElement){
 			$array = (array) $array;
+			if (!count ($array)){
+				$array = false;
+			}
 			$this->affects_sxml_on_arr_reqursive($array);
 		}
 		elseif (is_array($array)){
 			foreach ($array as $key => $row){
 				if ($row instanceof SimpleXMLElement){
-					$array[$key] = (array)$row;
-					$this->affects_sxml_on_arr_reqursive ($array[$key]);
+					if (strlen ($key) > 5){
+						$count = 1;
+						$numeric_key = str_replace ('_key_', '', $key, $count);
+						if (is_numeric($numeric_key)){
+							$array[$numeric_key] = $row;
+							unset($array[$key]);
+							unset($row);
+							$this->affects_sxml_on_arr_reqursive ($array[$numeric_key]);
+						}
+						else{
+							unset ($row);
+							$this->affects_sxml_on_arr_reqursive ($array[$key]);
+						}
+						$partname_key_ = false;
+					}
+					else{
+						unset ($row);
+						$this->affects_sxml_on_arr_reqursive ($array[$key]);
+					}
+				}
+				elseif (strlen ($key) > 5){
+					$count = 1;
+					$numeric_key = str_replace ('_key_', '', $key, $count);
+					if (is_numeric($numeric_key)){
+						$array[$numeric_key] = $row;
+						unset($array[$key]);
+						unset($row);
+					}
+					$partname_key_ = false;
 				}
 			}
 		}

@@ -4,8 +4,6 @@ class Attribute extends MAWizardBase{
 
 	public function __construct ($_tpl, $_params, $_storageName = false, $_userParameters = null){
 		parent::__construct ($_tpl, $_params, $_storageName);
-
-		echo __METHOD__;
 	}
 
 	function postCheck (){

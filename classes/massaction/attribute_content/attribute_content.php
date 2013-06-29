@@ -17,7 +17,7 @@ class Attribute_content extends MAWizardBase{
 		$this->storage_path = eZSys::rootDir ().'/'. eZSys::storageDirectory (). '/'. $this->Module->currentModule(). '/';
 		$this->ma_nodes_list = array();
 
-		echo __METHOD__;
+		//echo __METHOD__;
 	}
 
 	protected function set_parameters_attribute_content (){
@@ -33,6 +33,11 @@ class Attribute_content extends MAWizardBase{
 	}
 	public function postCheck (){
 		if (!$this->Module->isCurrentAction ('change_attribute_content')){
+			/*
+			$this->ma_xml = new MA_XML_File(null, $this->storage_path, 'massaction_17');
+			//var_dump($this->ma_xml->get_data_arr());
+			var_dump($this->ma_xml->get_data_arr());
+			// */
 			$this->prepare_to_repeat_step ();
 			return false;
 		}
@@ -47,26 +52,38 @@ class Attribute_content extends MAWizardBase{
 		$this->set_parameters_cli_flag ();
 
 		$this->error->add_parent_source_line(__METHOD__);
-		$this->ma_xml = new MA_XML_File ($this->parameters, $this->storage_path, $this->Module->currentModule ());
+		//$this->error->pop_parent_source_line();
 
-		if (!$this->ma_xml->store_file ()){
-			$this->ErrorList[] = $this->error->get_error_message();
+		$this->ma_xml = new MA_XML_File ($this->parameters, $this->storage_path, $this->Module->currentModule ());
+		if ($this->error->has_error()){
+			$this->ErrorList[] = $this->error->get_error();
 			$this->log->write($this->error->get_error(true, true));
 			return false;
 		}
-		$this->error->pop_parent_source_line();
 
-		$this->parameters['file_name'] = $this->ma_xml->get_file_name ();
+		if (!$this->ma_xml->store_file ()){
+			$this->ErrorList[] = $this->error->get_error();
+			$this->log->write($this->error->get_error(true, true));
+			return false;
+		}
+		$this->parameters['cli']['file-name'] = $this->ma_xml->get_file_name ();
+		$this->parameters['cli']['parent-folder'] = $this->ma_xml->get_container ();
 
 		if ($this->parameters['cli_flag']){
-			$this->delegate_work_to_cli ();
-		}
-		else{
-			if (!$this->change_attribute_content())
-			{
+			if (!$this->delegate_work_to_cli ()){
+				$this->ErrorList[] = $this->error->get_error();
+				$this->log->write($this->error->get_error(true, true));
 				return false;
 			}
 		}
+		if (!$this->parameters['cli_flag']){
+			if (!$this->change_attribute_content()){
+				$this->ErrorList[] = $this->error->get_error();
+				$this->log->write($this->error->get_error(true, true));
+				return false;
+			}
+		}
+		$this->error->pop_parent_source_line();
 
 		//$this->setMetaData ('current_step', $this->metaData ('current_step') - 1);
 		return true;
@@ -90,9 +107,9 @@ class Attribute_content extends MAWizardBase{
 
 		if (!count ($founded_keys) ){
 			$this->ErrorList[] = 'Do not founded attribute.';
-			eZDebug::writeWarning ('Module: '. $this->Module->currentModule (). '/'. $this->Module->currentView ().
-				' '. __METHOD__. ' '.__LINE__. ': '. $this->ErrorList[0]);
-
+			$this->error->set_error($this->ErrorList[0], __METHOD__, __LINE__, MA_Error::ERROR);
+			//eZDebug::writeError ('Module: '. $this->Module->currentModule (). '/'. $this->Module->currentView ().
+			//	' '. __METHOD__. ' '.__LINE__. ': '. $this->ErrorList[0]);
 			return false;
 		}
 		$founded_keys = array_values ($founded_keys);
@@ -112,7 +129,13 @@ class Attribute_content extends MAWizardBase{
 	}
 
 	protected function delegate_work_to_cli (){
-		$this->set_script_monitor();
+		$this->error->add_parent_source_line(__METHOD__);
+		if (!$this->set_script_monitor()){
+			$this->error->pop_parent_source_line();
+			return false;
+		}
+		$this->error->pop_parent_source_line();
+		return true;
 	}
 	protected function set_script_monitor (){
 		// Take care of script monitoring - only if extension exists
@@ -124,22 +147,27 @@ class Attribute_content extends MAWizardBase{
 		){
 			$script = eZScheduledScript::create(
 				'content_changer.php',
-				'extension/ezmassaction/bin/cli/'. eZScheduledScript::SCRIPT_NAME_STRING. ' -s '. eZScheduledScript::SITE_ACCESS_STRING.
-				' --filename-part='. $this->parameters['file_name']
+				'php extension/ezmassaction/bin/cli/'. eZScheduledScript::SCRIPT_NAME_STRING. ' -s '. eZScheduledScript::SITE_ACCESS_STRING.
+				' --filename-part='. $this->parameters['cli']['file-name']. ' --parent-catalog='. $this->parameters['cli']['parent-folder']
 			);
 			$script->store();
 			$this->parameters['scheduled_script_id'] = $script->attribute( 'id' );
 		}
+		else{
+			$this->error->set_error('The ext ezscriptmonitor is turned off or missing.', __METHOD__, __LINE__, MA_Error::ERROR);
+			return false;
+		}
+		return true;
 	}
 
 	protected function change_attribute_content (){
 		$this->error->add_parent_source_line(__METHOD__);
 		$this->start_TS = $this->get_microtime_float();
-		set_time_limit (240);
+		set_time_limit (60*30);
 
-		$this->parameters['cron']['subtrees'] = array();
-		$this->parameters['cron']['objects']['languages']['count'] = 0;
-		$this->parameters['cron']['nodes']['count'] = 0;
+		$this->parameters['web']['subtrees'] = array();
+		$this->parameters['web']['objects']['languages']['count'] = 0;
+		$this->parameters['web']['nodes']['count'] = 0;
 
 		$this->log->write (
 			'Start '. __METHOD__. "\n".
@@ -149,24 +177,20 @@ class Attribute_content extends MAWizardBase{
 			'New attribute content: '. $this->parameters['attribute_content']. "\n"
 		);
 
-		$this->HTTP->setPostVariable($this->parameters['attribute_post_key'], $this->parameters['attribute_content']);
-
 		foreach ($this->parameters['parents_nodes_ids'] as $_key => $_node_id){
 			$this->log->write(
-				'Parent node id: '. $_node_id. "\n"
+				'Tree Parent - node id: '. $_node_id. "\n"
 			);
 			$this->ma_nodes_list[$_key] = new MA_Content_Object_Tree_Nodes_List(
-				$_node_id, $this->parameters['section_identifier'], $this->parameters['class_identifier'], $this->parameters['locales_codes'], 5
+				$_node_id, $this->parameters['section_identifier'], $this->parameters['class_identifier'], $this->parameters['locales_codes'], 15
 			);
 
 			if (!$this->ma_nodes_list[$_key]){
-				$this->ErrorList[] = $this->error->get_error_message();
-				$this->log->write($this->error->get_error(true, true));
+				$this->error->pop_parent_source_line();
 				return false;
 			}
 			if ($this->error->has_error()){
-				$this->ErrorList[] = $this->error->get_error_message();
-				$this->log->write($this->error->get_error(true, true));
+				$this->error->pop_parent_source_line();
 				return false;
 			}
 
@@ -175,24 +199,22 @@ class Attribute_content extends MAWizardBase{
 					$this->parameters['attribute_identifier'], $this->parameters['attribute_content'], false, null, null
 				)
 			){
-				$this->ErrorList[] = $this->error->get_error_message(true);
-				$this->log->write($this->error->get_error(true, true));
+				$this->error->pop_parent_source_line();
 				return false;
 			}
 			do{
 				if (!$this->ma_nodes_list[$_key]->change_nodes_tree_attribute_content ()){
-					$this->ErrorList[] = $this->error->get_error_message();
-					$this->log->write($this->error->get_error(true, true));
-					$this->parameters['cron']['subtrees'][$_node_id] = $this->ma_nodes_list[$_key]->get_change_result ();
+					$this->error->pop_parent_source_line();
+					//$this->parameters['web']['subtrees'][$_node_id]['result'] = $this->ma_nodes_list[$_key]->get_change_result ();
 					return false;
 				}
-				$this->parameters['cron']['subtrees'][$_node_id] = $this->ma_nodes_list[$_key]->get_change_result ();
-				$this->parameters['cron']['objects']['languages']['count']
-					+= $this->parameters['cron']['subtrees'][$_node_id]['objects']['langs']['counter'];
-				$this->parameters['cron']['nodes']['count'] += $this->parameters['cron']['subtrees'][$_node_id]['nodes']['counter'];
+				$this->parameters['web']['subtrees'][$_node_id]['result'] = $this->ma_nodes_list[$_key]->get_change_result ();
+				$this->parameters['web']['objects']['languages']['count']
+					+= $this->parameters['web']['subtrees'][$_node_id]['result']['objects']['languages']['changed']['counter'];
+				$this->parameters['web']['nodes']['count'] += $this->parameters['web']['subtrees'][$_node_id]['result']['nodes']['changed']['counter'];
 				break;
 			}
-			while (!$this->parameters['cron']['subtrees'][$_node_id]['end_flag']);
+			while (!$this->parameters['web']['subtrees'][$_node_id]['result']['end_flag']);
 
 			//$obb = new MA_Content_Object_Tree_Nodes_List();
 			//if ($this->error->has_error()){
@@ -205,7 +227,7 @@ class Attribute_content extends MAWizardBase{
 			/**
 			 * @ToDo move below code to maobjects module
 			 *
-			if (!$this->ma_nodes_list[$_key]->preset_create_tree (MA_Content_Object_Tree_Nodes_List::CR_METHOD_LINE_X, 2, 2, null, 'folder')){
+			if (!$this->ma_nodes_list[$_key]->preset_create_tree(MA_Content_Object_Tree_Nodes_List::CR_METHOD_LINE_X, 20, 2, null, 'folder')){
 				$this->ErrorList[] = $this->error->get_error_message();
 				$this->log->write($this->error->get_error(true, true));
 				return false;
@@ -215,17 +237,18 @@ class Attribute_content extends MAWizardBase{
 				$this->log->write($this->error->get_error(true, true));
 				return false;
 			}
+
 			*/
 		}
 		$this->error->pop_parent_source_line ();
 
 		$this->end_TS = $this->get_microtime_float();
-		$this->log->write(
-			'  Works end '. "\n".
+		$this->log->write (
+			'  Done, end '. __METHOD__. "\n".
+			'  Run from Web.'. "\n".
 			'  Works time: '. ($this->end_TS - $this->start_TS). ' secs'. "\n".
-			'  Changed nodes count: '. $this->parameters['cron']['nodes']['count']. "\n".
-			'  Changed language objects count: '. $this->parameters['cron']['objects']['languages']['count']. "\n".
-			'  Was Run from web browser'. "\n"
+			'  Count of changed nodes: '. $this->parameters['web']['nodes']['count']. "\n".
+			'  Count of changed language versions objects: '. $this->parameters['web']['objects']['languages']['count']. "\n"
 		);
 		return true;
 	}

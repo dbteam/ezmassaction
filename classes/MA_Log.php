@@ -42,4 +42,8 @@ class MA_Log {
 		$this->file_full_name = $this->file_name. '.log';
 	}
 
+	public function get_file_name(){
+		return $this->file_full_name;
+	}
+
 }
